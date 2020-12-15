@@ -33,8 +33,8 @@ class User:
 
     def move2Server(self):
         serverList = self._currentGroup.getServerList()
-        self._
-        return serverList[np.random.randint(0, len(serverList))]
+        self._currentServer = serverList[np.random.randint(0, len(serverList))]
+        return self._currentServer
 
     def getCurrentGroup(self):
         return self._currentGroup
@@ -44,6 +44,10 @@ class User:
 
     def getKey(self):
         return "user-" + str(self._userID)
+    
+    def getTypeName(self):
+        return self._userTypeName
+
 
     # def __randonmGroupTypeName(self, phase):
     #     dictValues = list(self._groupTypeTransDicts[phase][self._currentGroup.getTypeName()].values())
@@ -70,6 +74,10 @@ class User:
     #     for typek in list(taskGenInfoDict.keys()):
     #         for i in range(np.random.poisson(taskGenInfoDict[typek][0])):
     #             tmpTask = task.Task(typek, self._currentServer, )
+
+
+if __name__ == "__main__":
+    pass
 
 
 

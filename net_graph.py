@@ -86,7 +86,7 @@ class NetGraph:
         return linkList
 
     def addSwitch(self):
-        switch = net_ap.NetAP(parameters.CODE_SWITCH,self._generateApID(), 0, -1)
+        switch = net_ap.NetAP(parameters.CODE_SWITCH, 0,)
         # Add new switch into APList
         self._APList.append(switch)
         # Expand linkMetrix to accommodate links refers to created switch
@@ -110,8 +110,7 @@ class NetGraph:
 
     def addServer(self, rscAmount):
         # Create a new server and add it into APlist
-        tmpServer = net_ap.NetAP(parameters.CODE_SERVER, self._generateApID(), rscAmount,
-        self._generateServerID())
+        tmpServer = net_ap.NetAP(parameters.CODE_SERVER, rscAmount)
         self._APList.append(tmpServer)
         # Expand linkMertix
         for e in self._linkMetrix:

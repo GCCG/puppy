@@ -69,8 +69,12 @@ class GroupType:
     def createGroup(self, serverNum):
         pass
 
-def createAGroupType():
-    gt = GroupType(4, parameters.CODE_GROUP_TYPE_BUSINESS)
+def createAGroupType(groupTypeName=None):
+    if groupTypeName == None:
+        groupTypeList = [parameters.CODE_GROUP_TYPE_BUSINESS, \
+        parameters.CODE_GROUP_TYPE_COMMMUNITY, parameters.CODE_GROUP_TYPE_COMPANY]
+        groupTypeName = groupTypeList[np.random.randint(0, len(groupTypeList))]
+    gt = GroupType(4, groupTypeName)
 
     gt.addTaskGenInfo(parameters.CODE_TASK_TYPE_VA, 3, 4)
     gt.addTaskGenInfo(parameters.CODE_TASK_TYPE_IoT, 5, 2)

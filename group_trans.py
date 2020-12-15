@@ -2,6 +2,7 @@
 # This class is responsible for transferring between groups
 import numpy as np
 import sys
+import os
 from . import  parameters
 from . import group_type
 from . import group
@@ -46,7 +47,7 @@ class GroupTrans:
             for g in self._groupList:
                 if g.getTypeName() == groupTypeName:
                     tmpList.append(g)
-            print("Groups of type %s:" % groupTypeName)
+            print("In " + os.path.split(__file__)[-1] + ", Groups of type %s:" % groupTypeName)
             for g in tmpList:
                 print(g.getKey())
             if groupNum > len(tmpList):

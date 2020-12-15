@@ -6,14 +6,21 @@ from . import parameters
 from . import group_type
 
 class NetAP:
-    def __init__(self, apType, apID, rscAmount, serverID=-1, group=None):
+    generatedApNUM = 0
+    generatedServerNUM = 0
+    def __init__(self, apType, rscAmount, group=None):
         if apType != parameters.CODE_SERVER and apType != parameters.CODE_SWITCH:
             print(apType)
             sys.exit("---In "+__file__+"\nNetAP apType is not switch or server")
         self._apType = apType
-        self._apID = apID
+        self._apID = NetAP.generatedApNUM
+        NetAP.generatedApNUM = 1 + NetAP.generatedApNUM
         self._rscAmount = rscAmount
-        self._serverID = serverID
+        if apType==parameters.CODE_SERVER:
+            self._serverID = NetAP.generatedServerNUM
+            NetAP.generatedServerNUM = 1 + NetAP.generatedServerNUM
+        else:
+            self._serverID = -1
         self._group = group
     
     def isServer(self):
@@ -47,8 +54,8 @@ class NetAP:
     def getKey(self):
         return 'server-'+str(self._serverID)
 
-def createANetAP(group, apID, serverID, groupType):
-    return NetAP(parameters.CODE_SERVER, apID, groupType.generateServerRsc(), serverID, group)
+def createANetAP(group, groupType):
+    return NetAP(parameters.CODE_SERVER, groupType.generateServerRsc(), group)
 
 
 def testFunc():
@@ -58,7 +65,7 @@ if __name__=="__main__":
     # group.testFunc()
     gt = group_type.createAGroupType()
     gp = group.Group(gt.getGroupTypeName(), gt.getTaskGenInfoDict())
-    server = createANetAP(gp, 1, 1, gt)
-    print("Created server is of tye: %s" % (server.getType()))
+    server = createANetAP(gp, gt)
+    print("Created server is of type: %s" % (server.getType()))
     print("Created server has key: %s" % (server.getKey()))
     print("Created server has rsc amount: %d" % (server.getRscAmount()))

@@ -59,11 +59,12 @@ class Group:
         else:
             return False
 
-def createAGroup():
-    gt = group_type.createAGroupType()
-    gp = Group(gt.getGroupTypeName(), gt.getTaskGenInfoDict())
-    for i in range(gt.generateServerNum()):
-        tmpServer = net_ap.NetAP(parameters.CODE_SERVER, i, gt.generateServerRsc(), i+1, gt)
+def createAGroup(grouType=None):
+    if grouType ==None:
+        grouType = group_type.createAGroupType()
+    gp = Group(grouType.getGroupTypeName(), grouType.getTaskGenInfoDict())
+    for i in range(grouType.generateServerNum()):
+        tmpServer = net_ap.NetAP(parameters.CODE_SERVER, grouType.generateServerRsc(), gp)
         gp.addServer(tmpServer)
     return gp
 
@@ -75,5 +76,5 @@ if __name__ == "__main__":
     print("Group's type name is: %s." %(gp.getTypeName()))
     print("Gropu's taskGenInfoDict is: ", gp.getTaskGenInfoDict())
     for s in gp.getServerList():
-        print("The server in this group has a key %s." % (s.getKey()))
+        print("The server in this group has a key %s, its group type name is:%s" % (s.getKey(), s.getGroup().getTypeName()))
 

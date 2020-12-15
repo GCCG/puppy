@@ -56,9 +56,9 @@ class NetPath:
             self._linklist.append(link)
     
 def _createNetPath():
-    ap_1 = net_ap.NetAP('server', 1, 4, 1)
-    ap_2 = net_ap.NetAP('switch', 2, 0,)
-    ap_3 = net_ap.NetAP('server', 3, 3, 2)
+    ap_1 = net_ap.NetAP('server', 4)
+    ap_2 = net_ap.NetAP('switch', 0)
+    ap_3 = net_ap.NetAP('server', 3)
     link_1 = net_link.NetLink(1, 5, ap_1, ap_2, 2, 'normal')
     link_2 = net_link.NetLink(2, 3, ap_2, ap_3, 4, 'normal')
 
