@@ -5,6 +5,9 @@ from . import parameters
 from . import net_ap
 from . import net_link
 
+from . import net_graph
+from . import task
+
 class ResourceTimeTable:
     def __init__(self, slotSize, slotNum, currentTime):
         self._slotSize = slotSize
@@ -22,6 +25,7 @@ class ResourceTimeTable:
 
     def addLinkRsc(self, link):
         tmpRow = []
+        print("In addLinkRsc, bandwidth:%d" % (link.getBandwidth()))
         for i in range(self._slotNum):
             tmpRow.append(slot.Slot(parameters.CODE_RSC_LINK, link.getBandwidth()))
         self._rscNum = self._rscNum + 1
@@ -36,8 +40,8 @@ class ResourceTimeTable:
         self._rsc2SloRowEnds[server.getKey()] = self._currentTime - self._slotStartTime
 
     def allocateLinkSlot(self, task, time, path):
-        if time <= self._currentTime:
-            Exception("Argument 'time' is smaller than current time.")
+        if time < self._currentTime:
+            sys.exit("Argument 'time' is smaller than current time.")
         index, slotBan = self.__searchAvailableLinkSlot(time - self._slotStartTime, path)
         
         # Try to insert the index of link slot for this task,
@@ -51,7 +55,7 @@ class ResourceTimeTable:
         path.reset()
         # Allocate slots of links in path for this task.
         tmpIndex = index
-        for i in range(len(linkLenList)-1):
+        for i in range(len(linkLenList)):
             linkKey = path.nextLink().getKey()
             # Add task into corresponding link slot.
             self._rsc2SlotRowDict[linkKey][tmpIndex].addTask(task, slotBan)
@@ -60,11 +64,13 @@ class ResourceTimeTable:
 
             tmpIndex = tmpIndex + linkLenList[i]
         # Return time of allocated slot and allocated bandwidth.
-        return index + self._slotStartTime, tmpIndex, slotBan
+        startTime = index + self._slotStartTime
+        endTime = tmpIndex + self._slotStartTime
+        return startTime, endTime, slotBan
 
     def allocateServerSlot(self, task, time, server):
-        if time <= self._currentTime:
-            Exception("Argument 'time' is smaller than current time.")
+        if time < self._currentTime:
+            sys.exit("Argument 'time' is smaller than current time.")
         index  = self.__searchAvailableServerSlot(time - self._slotStartTime, server)
 
         # Try to insert the index of server slot for this task,
@@ -76,7 +82,9 @@ class ResourceTimeTable:
 
         self._rsc2SlotRowDict[server.getKey()][index].addTask(task, 1)
         # Return time of allocated slot
-        return index + self._slotStartTime, index + self._slotStartTime + 1       
+        startTime = index + self._slotStartTime
+        endTime = startTime + 1
+        return startTime, endTime       
 
     def freeRscFromCurrentTime(self):
         currentIndex = self._currentTime - self._slotStartTime
@@ -121,9 +129,13 @@ class ResourceTimeTable:
         distList = path.getLinkLengthList()
         path.reset()
         minBan = self._rsc2SlotRowDict[path.nextLink().getKey()][index].remainedRsc()
+        print("In resource_time_table.py, checkPathBandwidth:")
+        print(minBan)
         for i in range(len(distList)-1):
             tmpLink = path.nextLink()
+            print(tmpLink.getKey())
             tmpBan = self._rsc2SlotRowDict[tmpLink.getKey()][index+distList[i]].remainedRsc()
+            print(tmpBan)
             index = index + distList[i]
             if tmpBan < minBan:
                 minBan = tmpBan
@@ -146,3 +158,21 @@ class ResourceTimeTable:
         if time - self._slotStartTime > self._rsc2SloRowEnds[rscKey]:
             self._rsc2SloRowEnds[rscKey] = time - self._slotStartTime
 
+if __name__ == "__main__":
+    ng = net_graph.createANetGraph()
+    rtt = ResourceTimeTable(1, 100, 0)
+    linkList = ng.getLinkList()
+    serverList = ng.getServerList()
+    for l in linkList:
+        rtt.addLinkRsc(l)
+    for s in serverList:
+        rtt.addServerRsc(s)
+    path1 = ng.getShortestPath(serverList[0], serverList[4])
+    
+    tmpTask = task.Task(parameters.CODE_TASK_TYPE_IoT, serverList[0], 20, 0, 5,4)
+    tmpTask.setDispatchedServer(serverList[4])
+    print("start_ap:%s, end_ap:%s." % (serverList[0].getKey(), serverList[4].getKey()))
+    startTime, endTime, ban = rtt.allocateLinkSlot(tmpTask, time=0, path=path1)
+    print("Data transmission, start_time:%d, end_time:%d, bandwidth:%d" % (startTime, endTime, ban))
+    startTime, endTime = rtt.allocateServerSlot(tmpTask, endTime, tmpTask.getDispatchedServer())
+    print("Computation, start_time:%d, end_time:%d." % (startTime, endTime))

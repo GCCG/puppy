@@ -56,7 +56,7 @@ class NetGraph:
                 for b in range(self._APNum):
                     if pathLen[a][c]+pathLen[c][b] < pathLen[a][b]:
                         pathLen[a][b] = pathLen[a][c] + pathLen[c][b]
-                        print("---Concatenating: %d-%d-%d" % (a+1, c+1, b+1))
+                        # print("---Concatenating: %d-%d-%d" % (a+1, c+1, b+1))
                         pathMatrix[a][b] = self.__concatenate(pathMatrix[a][c], pathMatrix[c][b])
         print("PathLenMatrix:\n", pathLen)
         self._pathMatrix = pathMatrix
@@ -82,7 +82,7 @@ class NetGraph:
         for i in range(self._APNum):
             for j in range(self._APNum):
                 if self._linkMetrix[i][j] != None:
-                    linkList.append(self._linkMetrix)
+                    linkList.append(self._linkMetrix[i][j])
         return linkList
 
     def addSwitch(self):
@@ -102,7 +102,7 @@ class NetGraph:
 
     def addLink(self, headAP, tailAP, ban, len, type):
         # Create a link
-        tmpLink = net_link.NetLink(self._generateLinkID(), len, headAP, tailAP, ban, type)
+        tmpLink = net_link.NetLink(len, headAP, tailAP, ban, type)
         # Add it into linkMetrix
         # print("Index:", self.__getAPIndex(headAP)+1, '  ',self.__getAPIndex(tailAP)+1)
         self._linkMetrix[self.__getAPIndex(headAP)][self.__getAPIndex(tailAP)] = tmpLink
@@ -131,11 +131,11 @@ class NetGraph:
         path2.reset()
         for i in range(path1.getLinkNum()):
             tmpLink = path1.nextLink()
-            print("link lenght is:", tmpLink.getLinkLength())
+            # print("link lenght is:", tmpLink.getLinkLength())
             tmpPath.addLink(tmpLink)
         for j in range(path2.getLinkNum()):
             tmpLink = path2.nextLink()
-            print("link lenght is:", tmpLink.getLinkLength())
+            # print("link lenght is:", tmpLink.getLinkLength())
             tmpPath.addLink(tmpLink)
         
         return tmpPath
@@ -214,20 +214,20 @@ def createANetGraph():
     v4 = ng.addServer(4)
     v5 = ng.addServer(5)
 
-    l12 = ng.addLink(v1, v2, 1, 2, parameters.CODE_NORMAL_LINK)
-    l21 = ng.addLink(v2, v1, 1, 2, parameters.CODE_NORMAL_LINK)
+    l12 = ng.addLink(v1, v2, 5, 2, parameters.CODE_NORMAL_LINK)
+    l21 = ng.addLink(v2, v1, 7, 2, parameters.CODE_NORMAL_LINK)
 
     l13 = ng.addLink(v1, v3, 1, 8, parameters.CODE_NORMAL_LINK)
     l31 = ng.addLink(v3, v1, 1, 8, parameters.CODE_NORMAL_LINK)
 
-    l24 = ng.addLink(v2, v4, 1, 3, parameters.CODE_NORMAL_LINK)
-    l42 = ng.addLink(v4, v2, 1, 3, parameters.CODE_NORMAL_LINK)
+    l24 = ng.addLink(v2, v4, 4, 3, parameters.CODE_NORMAL_LINK)
+    l42 = ng.addLink(v4, v2, 8, 3, parameters.CODE_NORMAL_LINK)
 
-    l34 = ng.addLink(v3, v4, 1, 1, parameters.CODE_NORMAL_LINK)
-    l43 = ng.addLink(v4, v3, 1, 1, parameters.CODE_NORMAL_LINK)
+    l34 = ng.addLink(v3, v4, 3, 1, parameters.CODE_NORMAL_LINK)
+    l43 = ng.addLink(v4, v3, 9, 1, parameters.CODE_NORMAL_LINK)
 
-    l35 = ng.addLink(v3, v5, 1, 6, parameters.CODE_NORMAL_LINK)
-    l53 = ng.addLink(v5, v3, 1, 6, parameters.CODE_NORMAL_LINK)
+    l35 = ng.addLink(v3, v5, 2, 6, parameters.CODE_NORMAL_LINK)
+    l53 = ng.addLink(v5, v3, 10, 6, parameters.CODE_NORMAL_LINK)
 
     ng._floydShortestPath()
     return  ng

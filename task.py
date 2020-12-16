@@ -58,11 +58,21 @@ class Task:
     def getKey(self):
         return "task-"+str(self._taskID)
 
+def createTasks():
+    gp = group.createAGroup()
+    taskList = []
+    print("What's wrong?")
+    for s in gp.getServerList():
+        print(s.getKey())
+        for i in range(10):
+            taskList.append(Task(parameters.CODE_TASK_TYPE_IoT, s, 20,5, 10, 10))
+    return taskList
+
 if __name__=="__main__":
     # gt =  group_type.createAGroupType()
     gp = group.createAGroup()
     taskList = []
-    print("What's wrong?")
+    # print("What's wrong?")
     for s in gp.getServerList():
         print(s.getKey())
         for i in range(10):

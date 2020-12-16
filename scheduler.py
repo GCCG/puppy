@@ -254,5 +254,6 @@ class DedasScheduler(Scheduler):
         else:
             return self._currentACT, self._currentDS
 
-
+if __name__ == "__main__":
+    pass
         

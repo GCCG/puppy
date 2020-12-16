@@ -8,14 +8,16 @@ from . import group_type
 
 
 class NetLink:
-    def __init__(self, linkID, length, headAP, tailAP, bandwidth, linkType):
+    generatedLinkNum = 0
+    def __init__(self, length, headAP, tailAP, bandwidth, linkType):
         """ 
         NetLink object has no state and only have attribute.
         Once it is created, the value of its member will keep invariant.  
         """
         if type(headAP) != net_ap.NetAP or type(tailAP) != net_ap.NetAP:
             sys.exit("headAP and tailAP should be NetAP objects.")
-        self._linkID = linkID
+        self._linkID = NetLink.generatedLinkNum
+        NetLink.generatedLinkNum = NetLink.generatedLinkNum + 1
         self._length = length
         self._headAP = headAP
         self._tailAP = tailAP
@@ -49,8 +51,8 @@ class NetLink:
         else:
             return False
 
-def createALink(headAP, tailAP, id):
-    return NetLink(id, np.random.randint(5,10), headAP, tailAP, np.random.randint(10,20), parameters.CODE_BACKHAUL_LINK)
+def createALink(headAP, tailAP):
+    return NetLink(np.random.randint(5,10), headAP, tailAP, np.random.randint(10,20), parameters.CODE_BACKHAUL_LINK)
 
 if __name__ == "__main__":
     gp = group.createAGroup()
@@ -59,7 +61,7 @@ if __name__ == "__main__":
     tmpLinkList = []
     # tmpLinkList.append(createALink(serverList[0], serverList[1], 1))
     for i in range(len(serverList)-1):
-        tmpLinkList.append(createALink(serverList[i], serverList[i+1], i))
+        tmpLinkList.append(createALink(serverList[i], serverList[i+1]))
     for link in tmpLinkList:
         print("Link in list has key: %s, its type is: %s, bandwidth is: %d, length is: %d." \
             % (link.getKey(), link.getLinkType(), link.getBandwidth(), link.getLinkLength()))
