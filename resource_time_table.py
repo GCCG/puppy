@@ -40,6 +40,9 @@ class ResourceTimeTable:
         self._rsc2SloRowEnds[server.getKey()] = self._currentTime - self._slotStartTime
 
     def allocateLinkSlot(self, task, time, path):
+        if path.getPathLength() == 0:
+            print("In resource_time_table, encounter a zero path.")
+            return 0, 0, 0
         if time < self._currentTime:
             sys.exit("Argument 'time' is smaller than current time.")
         index, slotBan = self.__searchAvailableLinkSlot(time - self._slotStartTime, path)
@@ -49,6 +52,7 @@ class ResourceTimeTable:
         try:
             self._taskAlcLinkInfoDict[task.getKey()].append(index)
         except KeyError:
+            print("In resource_time_table, create a taskAlcLinkInfo for %s." % (task.getKey()))
             self._taskAlcLinkInfoDict[task.getKey()] = [index]
         
         linkLenList = path.getLinkLengthList()
@@ -79,8 +83,12 @@ class ResourceTimeTable:
             self._taskAlcSerInfoDict[task.getKey()].append(index)
         except KeyError:
             self._taskAlcSerInfoDict[task.getKey()] = [index]
-
+            print("In resource_time_table, create a taskAlcSerInfo for %s." % (task.getKey()))
+        print("Allocate %s's slot %d for %s." % (server.getKey(), index, task.getKey()))
+        # print("taskAlcSerInfo:", self._taskAlcSerInfoDict[task.getKey()])
         self._rsc2SlotRowDict[server.getKey()][index].addTask(task, 1)
+        # self.printStatus()
+        # print("%s's slot %s, status:" % (server.getKey(),index),self._rsc2SlotRowDict[server.getKey()][index].getStatus())
         # Return time of allocated slot
         startTime = index + self._slotStartTime
         endTime = startTime + 1
@@ -94,25 +102,51 @@ class ResourceTimeTable:
 
     def recallRsc(self, time, task, path):
         linkLenList = path.getLinkLengthList()
-
-        # Free link slot resource.
-        for index in self._taskAlcLinkInfoDict[task.getKey()]:
-            tmpIndex = index
-            path.reset()
-            for len in linkLenList:
-                if index + self._slotStartTime < time:
-                    print("History should be reserved.")
-                    continue
-                if self._rsc2SlotRowDict[path.nextLink().getKey][tmpIndex].deleteTask(task) != True:
-                    sys.exit("No such task in this link slot")
-                tmpIndex = tmpIndex + len
-
+        print("In resource_time_table, recall resources of %s" %(task.getKey()))
+        
         # Free server slot resource.
-        for index in self._taskAlcSerInfoDict[task.getKey()]:
-            if self._rsc2SlotRowDict[task.getDispatchedServer().getKey()][index].deleteTask(task) != True:
-                sys.exit("No such task in this server slot")
-
-
+        try:
+            print("taskAlcSerInfo for %s" % (task.getKey()))
+            print( self._taskAlcSerInfoDict[task.getKey()])
+            for index in self._taskAlcSerInfoDict[task.getKey()]:
+                if time - self._slotStartTime > index:
+                    continue
+                elif self._rsc2SlotRowDict[task.getDispatchedServer().getKey()][index].deleteTask(task) != True:
+                    sys.exit("In resource_time_table, no %s in this server slot, index:%d." % (task.getKey(), index))
+                print("Free server rsc at index %d for %s" % (index, task.getKey()))
+            # dump stale information
+            for i in range(len(self._taskAlcSerInfoDict[task.getKey()])):
+                if time  > self._taskAlcSerInfoDict[task.getKey()][i] + self._slotStartTime:
+                    continue
+                else:
+                    self._taskAlcSerInfoDict[task.getKey()] = self._taskAlcSerInfoDict[task.getKey()][0:i]
+                    break
+        except KeyError:
+            print("%s has no server resource to recall" % (task.getKey()))
+        # Free link slot resource.
+        try:
+            print("taskAlcLinkInfo for %s" % (task.getKey()))
+            print( self._taskAlcLinkInfoDict[task.getKey()])
+            for index in self._taskAlcLinkInfoDict[task.getKey()]:
+                tmpIndex = index
+                path.reset()
+                for length in linkLenList:
+                    if index + self._slotStartTime < time:
+                        print("History should be reserved.")
+                        continue
+                    elif self._rsc2SlotRowDict[path.nextLink().getKey()][tmpIndex].deleteTask(task) != True:
+                        sys.exit("In resource_time_table, no %s in this link slot, index:%d." % (task.getKey(), index))
+                    print("Free link rsc at index %d for %s" % (index, task.getKey()))
+                    tmpIndex = tmpIndex + length
+            # dump stale information
+            for i in range(len(self._taskAlcLinkInfoDict[task.getKey()])):
+                if time  > self._taskAlcLinkInfoDict[task.getKey()][i] + self._slotStartTime:
+                    continue
+                else:
+                    self._taskAlcLinkInfoDict[task.getKey()] = self._taskAlcLinkInfoDict[task.getKey()][0:i]
+                    break
+        except KeyError:
+            print("%s has no server resource to recall" % (task.getKey()))
         
     def updateTime(self):
         self._currentTime = self._currentTime + 1
@@ -128,17 +162,19 @@ class ResourceTimeTable:
     def __checkPathBandwidth(self, index, path):
         distList = path.getLinkLengthList()
         path.reset()
-        minBan = self._rsc2SlotRowDict[path.nextLink().getKey()][index].remainedRsc()
-        print("In resource_time_table.py, checkPathBandwidth:")
-        print(minBan)
+        tmpLink = path.nextLink()
+        minBan = self._rsc2SlotRowDict[tmpLink.getKey()][index].remainedRsc()
+        # print("In resource_time_table.py, checkPathBandwidth:")
+        # print("From %s to %s, remained bandwidth is:%d." % (tmpLink.getHeadAP().getKey(), tmpLink.getTailAP().getKey(), minBan))
         for i in range(len(distList)-1):
             tmpLink = path.nextLink()
-            print(tmpLink.getKey())
             tmpBan = self._rsc2SlotRowDict[tmpLink.getKey()][index+distList[i]].remainedRsc()
-            print(tmpBan)
+            # print("From %s to %s, remained bandwidth is:%d." % (tmpLink.getHeadAP().getKey(), tmpLink.getTailAP().getKey(), tmpBan))
+            # print(tmpBan)
             index = index + distList[i]
             if tmpBan < minBan:
                 minBan = tmpBan
+        print("In resource_time_table, minBan:%d" % minBan)
         return minBan
     
     def __searchAvailableLinkSlot(self, index, path):
@@ -157,6 +193,19 @@ class ResourceTimeTable:
     def __updateSlotRowEnd(self, rscKey, time):
         if time - self._slotStartTime > self._rsc2SloRowEnds[rscKey]:
             self._rsc2SloRowEnds[rscKey] = time - self._slotStartTime
+
+    def printStatus(self):
+        keyList = list(self._rsc2SlotRowDict.keys())
+        for index in range(20):
+            status = str(index) + "---|"
+            for key in keyList:
+                status = status + self._rsc2SlotRowDict[key][index].getStatus()
+            print(status)
+        # for key in keyList:
+        #     print(key," has %d slots." % (len(self._rsc2SlotRowDict[key])))
+                
+
+
 
 if __name__ == "__main__":
     ng = net_graph.createANetGraph()

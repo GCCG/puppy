@@ -8,6 +8,7 @@ from . import group_type
 class NetAP:
     generatedApNUM = 0
     generatedServerNUM = 0
+    generatedSwitchNum = 0
     def __init__(self, apType, rscAmount, group=None):
         if apType != parameters.CODE_SERVER and apType != parameters.CODE_SWITCH:
             print(apType)
@@ -19,8 +20,11 @@ class NetAP:
         if apType==parameters.CODE_SERVER:
             self._serverID = NetAP.generatedServerNUM
             NetAP.generatedServerNUM = 1 + NetAP.generatedServerNUM
+            self._switchID = -1
         else:
             self._serverID = -1
+            self._switchID = NetAP.generatedSwitchNum
+            NetAP.generatedSwitchNum = 1 + NetAP.generatedSwitchNum
         self._group = group
     
     def isServer(self):
@@ -39,7 +43,7 @@ class NetAP:
         return self._rscAmount
 
     def getID(self):
-        return self._serverID
+        return self._apID
 
     def getGroup(self):
         return self._group
@@ -52,7 +56,10 @@ class NetAP:
             self._group = APGroup
     
     def getKey(self):
-        return 'server-'+str(self._serverID)
+        if self._apType == parameters.CODE_SERVER:
+            return self._apType + '-' + str(self._serverID)
+        elif self._apType == parameters.CODE_SWITCH:
+            return self._apType + "-" + str(self._switchID)
 
 def createANetAP(group, groupType):
     return NetAP(parameters.CODE_SERVER, groupType.generateServerRsc(), group)

@@ -7,12 +7,12 @@ class NetPath:
     def __init__(self):
         self._headAP = None
         self._tailAP = None
-        self._linklist = []
+        self._linkList = []
         self._currentIndex = 0
 
     def nextLink(self):
-        if self._currentIndex == (self._currentIndex % len(self._linklist)):
-            link = self._linklist[self._currentIndex]
+        if self._currentIndex == (self._currentIndex % len(self._linkList)):
+            link = self._linkList[self._currentIndex]
             self._currentIndex = self._currentIndex + 1 
             return link
         else:
@@ -29,31 +29,35 @@ class NetPath:
 
     def getLinkLengthList(self):
         lenghtList = []
-        for link in self._linklist:
+        for link in self._linkList:
             lenghtList.append(link.getLinkLength())
         
         return lenghtList
 
     def getLinkNum(self):
-        return len(self._linklist)
+        return len(self._linkList)
 
     def getPathLength(self):
         pathLen = 0
-        for link in self._linklist:
+        for link in self._linkList:
             pathLen = pathLen + link.getLinkLength()
         return pathLen
+    
+    def getLinkList(self):
+        return list(self._linkList)
         
       
     def addLink(self, link):
         if type(link) != net_link.NetLink:
             sys.exit("The type of link is %s, not NetLink.")
-        if len(self._linklist) == 0:
+        if len(self._linkList) == 0:
             self._headAP = link.getHeadAP()
             self._tailAP = link.getTailAP()
-            self._linklist.append(link)
+            self._linkList.append(link)
         else:
             self._tailAP = link.getTailAP()
-            self._linklist.append(link)
+            self._linkList.append(link)
+    
     
 def _createNetPath():
     ap_1 = net_ap.NetAP('server', 4)

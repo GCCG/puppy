@@ -31,6 +31,15 @@ class TaskExInfo:
         self._transBanList = []
         self._comTimeList = []
         self._expectCompletionTime = 0
+        if self._pathLen == 0:
+            print("In task_ex_info, meet a task with 0 path length, startAP:%s, endAP:%s." % \
+                (task.getAccessPoint().getKey(), task.getDispatchedServer().getKey()))
+            self.transWaitTimeLen = 0
+            self._transStartTime = task.getBirthTime()
+            self._transEndTime = task.getBirthTime()
+            self._remData = 0
+            self.transTimeLen = 0
+
     
     def getCompletionTime(self):
         return self.transTimeLen + self.transWaitTimeLen + self._pathLen*2 + self.comWaitTimeLen + self.comTimeLen
@@ -115,9 +124,9 @@ class TaskExInfo:
             if self._comTimeList[j] >= currentTime:
                 self._comTimeList = self._comTimeList[0:j]
                 break
-        print("Cancelation finished")
-        print(self._transTimeList)
-        print(self._comTimeList)
+        print("In task_ex_info, task-%d's execution info cancelation from time %d finished" % (self._taskID, currentTime))
+        print("transTimeList:",self._transTimeList)
+        print("comTimeList:",self._comTimeList)
 
     def exInfoUpdate(self, time):
         # print("remComTime:%d, comEndTime:%d" % (self.remComTime, self._comEndTime))
@@ -149,8 +158,8 @@ class TaskExInfo:
                     if time < self._transEndTime:
                         sys.exit("Something is wrong with your program, task computation should start after time %d, now is %d" % (self._transEndTime, time))
                     self._comStartTime = time
-                    self._comEndTime = time
-                    self.comWaitTimeLen = self._comStartTime - self._transEndTime - self._pathLen
+                    self._comEndTime = time + 1
+                    self.comWaitTimeLen = self._comStartTime - self._transEndTime
                 self.comWaitTimeLen = self.comWaitTimeLen + time - self._comEndTime
                 
                 if self.remComTime >= 1:

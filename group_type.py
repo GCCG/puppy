@@ -24,7 +24,7 @@ class GroupType:
         return self._comCapacityList[np.random.randint(0, len(self._comCapacityList))]
 
     def generateServerNum(self):
-        return self._defaultServerNum + np.random.randint(0, 5)
+        return self._defaultServerNum #+ np.random.randint(0, 5)
 
     def expandLengthList(self, len):
         if type(len) != int:

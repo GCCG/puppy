@@ -1,10 +1,18 @@
 # Class Scheduler
 import copy
 import sys
+import numpy as np
+import xlrd
+import xlwt
 from . import task_ex_info
 from . import resource_time_table
 from . import net_graph
 from . import parameters
+
+from . import task_generator
+from . import task_type
+from . import task
+from . import user_type
 
 
 class Scheduler:
@@ -52,8 +60,9 @@ class DedasScheduler(Scheduler):
         self._taskQueue = []
 
     def schedulePlan(self, newTask, time):
-        bestACT = self._currentACT
+        bestACT = parameters.NUM_FLOAT_INFINITY
         bestIndex = -1
+        print("Length of taskQueue:%d." % (len(self._taskQueue)))
         for i in range(len(self._taskQueue)+1):
             tmpTaskQueue = copy.deepcopy(self._taskQueue)
             tmpTaskExInfoDict = copy.deepcopy(self._taskExInfoDict)
@@ -62,45 +71,57 @@ class DedasScheduler(Scheduler):
             if DS == (self._currentDS + 1) and ACT < bestACT:
                 bestIndex = i
                 bestACT = ACT
-        if bestIndex > 0:
+        print("bestIndex: %d" % bestIndex)
+        if bestIndex >= 0:
             return bestACT, (self._currentDS + 1), True
         else:
             for i in range(len(self._taskQueue)):
                 tmpTaskQueue = copy.deepcopy(self._taskQueue)
                 tmpTaskExInfoDict = copy.deepcopy(self._taskExInfoDict)
                 tmpRscTimeTable = copy.deepcopy(self._rscTimeTable)
-                ACT, DS = self.__dedasReplace(i, newTask, time, time, tmpTaskQueue, tmpTaskExInfoDict, tmpRscTimeTable)
+                ACT, DS = self.__dedasReplace(i, newTask, time, tmpTaskQueue, tmpTaskExInfoDict, tmpRscTimeTable)
                 if DS == self._currentDS and ACT < bestACT:
                     bestIndex = i
                     bestACT = ACT
-            if bestIndex > 0:
+            if bestIndex >= 0:
                 return bestACT, self._currentDS, True
             else:
                 return self._currentACT, self._currentDS, False
 
     def schedule(self, newTask, time):
-        bestACT = self._currentACT
+        # Set some local variables.
+        bestACT = parameters.NUM_FLOAT_INFINITY
         bestIndex = -1
         bestQueue = None
         bestExInfoDict = None
         bestTimeTable = None
+        # Try to insert this task into taskQueue
         for i in range(len(self._taskQueue)+1):
+            # Copy those info relate to scheduling
             tmpTaskQueue = copy.deepcopy(self._taskQueue)
             tmpTaskExInfoDict = copy.deepcopy(self._taskExInfoDict)
             tmpRscTimeTable = copy.deepcopy(self._rscTimeTable)
+            # Insert newTask into tmpTaskQueue
             ACT, DS = self.__dedasInsert(i, newTask, time, tmpTaskQueue, tmpTaskExInfoDict, tmpRscTimeTable)
+            # tmpRscTimeTable.printStatus()
+            # If this insertion result is better, then record its result
             if DS == (self._currentDS + 1) and ACT < bestACT:
                 bestIndex = i
+                # Record insertion result.
                 bestACT = ACT
                 bestQueue = tmpTaskQueue
                 bestExInfoDict = tmpTaskExInfoDict
                 bestTimeTable = tmpRscTimeTable
-        if bestIndex > 0:
+        # If insertion works, then set its best result as sheduling result
+        if bestIndex >= 0:
             self._currentACT = bestACT
             self._currentDS = self._currentDS + 1
             self._taskQueue = bestQueue
             self._taskExInfoDict = bestExInfoDict
             self._rscTimeTable = bestTimeTable
+            # print("Schedule finished:")
+            # self._rscTimeTable.printStatus()
+        # If insertion doesn't work, then try to replace 
         else:
             for i in range(len(self._taskQueue)):
                 tmpTaskQueue = copy.deepcopy(self._taskQueue)
@@ -113,7 +134,7 @@ class DedasScheduler(Scheduler):
                     bestQueue = tmpTaskQueue
                     bestExInfoDict = tmpTaskExInfoDict
                     bestTimeTable = tmpRscTimeTable
-            if bestIndex > 0:
+            if bestIndex >= 0:
                 self._currentACT = bestACT
                 self._taskQueue = bestQueue
                 self._taskExInfoDict = bestExInfoDict
@@ -167,33 +188,50 @@ class DedasScheduler(Scheduler):
         """ 
         If insertion is failed, then return schedule result before insertion.
          """
-        # Recall resources allocated for tasks
+        # Recall resources allocated for tasks from current time
+        print("---------------------------In scheduler, inserting %s at position %d." % (newTask.getKey(), index))
         tmpPath = None
-        for i in range(len(self._taskQueue) - index):
-            tmpTask = self._taskQueue[i]
+        for i in range(len(tmpTaskQueue)):
+            tmpTask = tmpTaskQueue[i]
             tmpPath = self._netGraph.getShortestPath(tmpTask.getAccessPoint(), tmpTask.getDispatchedServer())
             tmpTaskExInfoDict[tmpTask.getKey()].cancelScheduleFromNow(self._currentTime)
-            tmpRscTimeTable.recallRsc(time, tmpTask, tmpPath)
+            tmpRscTimeTable.recallRsc(self._currentTime, tmpTask, tmpPath)
+            # tmpRscTimeTable.recallRsc(time, tmpTask, tmpPath)
         
         tmpTaskQueue.insert(index, newTask)
-        tmpTaskExInfoDict[newTask.getKey()] = task_ex_info.TaskExInfo(newTask, \
-            sum(self._netGraph.getShortestPath(newTask.getAccessPoint(), newTask.getDispatchedServer()).getLinkList()))
+        ts = ""
+        for t in tmpTaskQueue:
+            ts = ts + "." + t.getKey()
+        print("In scheduler, tmpTaskQueue is: %s" % (ts))
+        # Create a task execution info for new task.
+        try:
+            tmpTaskExInfoDict[newTask.getKey()]
+        except KeyError:
+            print("In scheduler, create taskExInfo for %s." % (newTask.getKey()))
+            tmpTaskExInfoDict[newTask.getKey()] = task_ex_info.TaskExInfo(newTask, \
+            self._netGraph.getShortestPath(newTask.getAccessPoint(), newTask.getDispatchedServer()).getPathLength())
         CTList = []
-        for t in tmpTaskQueue[:index]:
-            CTList.append(tmpTaskExInfoDict[t.getKey()].getExpectedComTime())
-        tmpDS = index
-        # Reallocate resources for task which position is not smaller than index.
-        for i in range(len(tmpTaskQueue) - index):
-            tmpTask = tmpTaskQueue[index + i]
+        # for t in tmpTaskQueue[0:index]:
+        #     CTList.append(tmpTaskExInfoDict[t.getKey()].getExpectedComTime())
+
+        tmpDS = 0
+        # Reallocate resources for all tasks.
+        for i in range(len(tmpTaskQueue)):
+            tmpTask = tmpTaskQueue[i]
+            print("In scheudler, allocate resources for %s........................." %(tmpTask.getKey()))
             tmpPath = self._netGraph.getShortestPath(tmpTask.getAccessPoint(), tmpTask.getDispatchedServer())
-            # First, allocate bandwidth resource and record it
-            remData = tmpTask.getDataSize()
-            remComTime = tmpTask.getComputeTime()
+            # First, set starTime, endTime and  remaind rsc which need to allocate.
+            remData = tmpTaskExInfoDict[tmpTask.getKey()].getRemDataSize()
+            remComTime = tmpTaskExInfoDict[tmpTask.getKey()].getRemComTime()
+            # Data trans starts at time, but in link rsc allocating loop,
+            # (startTime + 1) is passed as parameter, so subtract 1.
             startTime = time - 1
             endTime = 0
-            # tmpTaskExInfoDict[newTask.getKey] = task_ex_info.TaskExInfo(newTask, sum(tmpPath.getLinkList()))
+            # Allocate bandwidth resource and record it
             while remData > 0:
                 startTime, endTime, ban = tmpRscTimeTable.allocateLinkSlot(tmpTask, startTime + 1, tmpPath)
+                if ban == 0:
+                    break
                 remData = remData - ban
                 tmpTaskExInfoDict[tmpTask.getKey()].addTransInfo(ban, startTime)
             # Seconde, allocate computation resource and record it
@@ -207,12 +245,19 @@ class DedasScheduler(Scheduler):
                 tmpDS = tmpDS + 1
             else:
                 return self._currentACT, self._currentDS
+        print("In scheduler, insertion ACT:%d, DS:%s." % (sum(CTList)/len(tmpTaskQueue), tmpDS))
+        taskCTDict = {}
+        for i in range(len(CTList)):
+            taskCTDict[tmpTaskQueue[i].getKey()] = CTList[i]
+        print("In schedule, tasks' completion time is:",taskCTDict)
+        tmpRscTimeTable.printStatus()
         return sum(CTList)/len(tmpTaskQueue), tmpDS
     
     def __dedasReplace(self, index, newTask, time, tmpTaskQueue, tmpTaskExInfoDict, tmpRscTimeTable):
         """ 
         If replace is failed, then return schedule result before replace.
          """
+        print("--------------In scheduler, replacing some task with %s." % (newTask.getKey()))
         tmpTask = tmpTaskQueue[index]
         tmpTaskQueue[index] = newTask
         tmpPath = self._netGraph.getShortestPath(tmpTask.getAccessPoint(), tmpTask.getDispatchedServer())
@@ -235,6 +280,8 @@ class DedasScheduler(Scheduler):
             # First, allocate bandwidth resource and record it.
             while remData > 0:
                 startTime, endTime, ban = tmpRscTimeTable.allocateLinkSlot(newTask, startTime + 1, newPath)
+                if ban == 0:
+                    break
                 remData = remData - ban
                 tmpTaskExInfoDict[newTask.getKey()].addTransInfo(ban, startTime)
             # Then allocate computation resource and record it
@@ -253,7 +300,38 @@ class DedasScheduler(Scheduler):
                 return sum(CTList)/len(tmpTaskQueue), self._currentDS
         else:
             return self._currentACT, self._currentDS
+    def printRTTStatus(self):
+        self._rscTimeTable.printStatus()
 
 if __name__ == "__main__":
-    pass
+    ng = net_graph.createANetGraph()
+    ds = DedasScheduler(ng, 40, 0)
+    taskList = []
+    serverList = ng.getServerList()
+    taskTypeNameList = [parameters.CODE_TASK_TYPE_IoT, parameters.CODE_TASK_TYPE_VA, parameters.CODE_TASK_TYPE_VR]
+    for i in range(len(serverList)):
+        for name in taskTypeNameList:
+            tmpTask = task.Task(name, serverList[i], 40, 0, 5, 10)
+            tmpTask.setDispatchedServer(serverList[np.random.randint(0, len(serverList))])
+            taskList.append(tmpTask)
+    print("task num is:%d" % (len(taskList)))
+
+    for t in taskList[0:4]:
+        #ACT, DS, taskIsSatisfied = ds.schedulePlan(t, 0)
+        #print("Plan: ACT:%d, DS:%d, taskIsSatisfied:%s" % (ACT, DS, taskIsSatisfied))
+        ACT, DS = ds.schedule(t, 0)
+        print("Schedule: ACT:%d, DS:%d." % (ACT, DS))
+        ds.printRTTStatus()
+    
+        
+
+            
+
+
+
+
+    
+
+
+
         

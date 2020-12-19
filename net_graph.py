@@ -62,8 +62,10 @@ class NetGraph:
         self._pathMatrix = pathMatrix
 
     def getShortestPath(self, start, end):
+        # print("In net_graph, path from %s to %s" % (start.getKey(), end.getKey()))
         startIndex = self.__getAPIndex(start)
         endIndex = self.__getAPIndex(end)
+        # print("Their indices are: %d, %d." % (startIndex, endIndex))
         
         return self._pathMatrix[startIndex][endIndex]
 
@@ -193,6 +195,13 @@ class TreeNetGraph(NetGraph):
         self._groupList.append(tmpGroup)
         return tmpGroup
     
+    def addGroupType(self, groupType):
+        # if type(groupType) != group_type.GroupType:
+        #     sys.exit("In net_graph, provided groupType should be a GroupType object. now it is of type %s." % type(groupType))
+        self._groupTypeDict[groupType.getGroupTypeName()] = groupType
+        print("In net_graph, Add new group Type %s." % (groupType.getGroupTypeName()))
+
+    
     def getRootSwitch(self):
          return self._rootSwitch
         
@@ -232,7 +241,72 @@ def createANetGraph():
     ng._floydShortestPath()
     return  ng
 
+def createATreeGraph():
+    tng = TreeNetGraph()
+    gtBusiness = group_type.GroupType(defaultServerNum=3, typeName=parameters.CODE_GROUP_TYPE_BUSINESS)
+    gtBusiness.addTaskGenInfo(parameters.CODE_TASK_TYPE_IoT, 4,5)
+    gtBusiness.addTaskGenInfo(parameters.CODE_TASK_TYPE_VA, 10, 5)
+    gtBusiness.addTaskGenInfo(parameters.CODE_TASK_TYPE_VR, 2, 8)
+    gtBusiness.expandBandwidthList(10)
+    gtBusiness.expandBandwidthList(15)
+    gtBusiness.expandBandwidthList(5)
+    gtBusiness.expandBandwidthList(20)
+    gtBusiness.expandLengthList(12)
+    gtBusiness.expandLengthList(15)
+    gtBusiness.expandLengthList(3)
+    gtBusiness.expandLengthList(20)
+    gtBusiness.expandComCapacityList(4)
+    gtBusiness.expandComCapacityList(8)
+    gtBusiness.expandComCapacityList(2)
+
+    gtCommunity = group_type.GroupType(defaultServerNum=3, typeName=parameters.CODE_GROUP_TYPE_COMMMUNITY)
+    gtCommunity.addTaskGenInfo(parameters.CODE_TASK_TYPE_IoT, 4,5)
+    gtCommunity.addTaskGenInfo(parameters.CODE_TASK_TYPE_VA, 10, 5)
+    gtCommunity.addTaskGenInfo(parameters.CODE_TASK_TYPE_VR, 2, 8)
+    gtCommunity.expandBandwidthList(10)
+    gtCommunity.expandBandwidthList(6)
+    gtCommunity.expandBandwidthList(4)
+    gtCommunity.expandBandwidthList(8)
+    gtCommunity.expandLengthList(5)
+    gtCommunity.expandLengthList(10)
+    gtCommunity.expandLengthList(12)
+    gtCommunity.expandLengthList(20)
+    gtCommunity.expandComCapacityList(5)
+    gtCommunity.expandComCapacityList(1)
+    gtCommunity.expandComCapacityList(2)
+
+    gtCompany = group_type.GroupType(defaultServerNum=3, typeName=parameters.CODE_GROUP_TYPE_COMPANY)
+    gtCompany.addTaskGenInfo(parameters.CODE_TASK_TYPE_IoT, 4,5)
+    gtCompany.addTaskGenInfo(parameters.CODE_TASK_TYPE_VA, 10, 5)
+    gtCompany.addTaskGenInfo(parameters.CODE_TASK_TYPE_VR, 2, 8)
+    gtCompany.expandBandwidthList(10)
+    gtCompany.expandBandwidthList(15)
+    gtCompany.expandBandwidthList(5)
+    gtCompany.expandBandwidthList(20)
+    gtCompany.expandLengthList(12)
+    gtCompany.expandLengthList(15)
+    gtCompany.expandLengthList(3)
+    gtCompany.expandLengthList(20)
+    gtCompany.expandComCapacityList(5)
+    gtCompany.expandComCapacityList(1)
+    gtCompany.expandComCapacityList(2)
+
+    tng.addGroupType(gtBusiness)
+    tng.addGroupType(gtCommunity)
+    tng.addGroupType(gtCompany)
+
+    rootSwitch = tng.getRootSwitch()
+    tng.genGroup(rootSwitch, 20, 40, parameters.CODE_GROUP_TYPE_BUSINESS)
+    tng.genGroup(rootSwitch, 25, 30, parameters.CODE_GROUP_TYPE_COMMMUNITY)
+    tng.genGroup(rootSwitch, 15, 40, parameters.CODE_GROUP_TYPE_COMPANY)
+    tng._floydShortestPath()
+    
+    return tng
+
+
+
 if __name__ == "__main__":
+    print("------Create normal net graph:")
     ng = createANetGraph()
     tmpServerList = ng.getServerList()
     for s in tmpServerList:
@@ -245,6 +319,39 @@ if __name__ == "__main__":
             print("---Path from v%d to v%d has linkLenList:" % (a+1, b+1))
             print(tmpPath.getLinkLengthList())
             print("Path from v%d to v%d has lenght: %d\n" % (a+1, b+1,tmpPath.getPathLength()))
+    
+    print("------Create tree net graph")
+    tng = createATreeGraph()
+    tmpServerList = tng.getServerList()
+    tmpGroupList = tng.getGroupList()
+    for g in tmpGroupList:
+        print("Group %s has servers:" %(g.getTypeName()))
+        for s in g.getServerList():
+            print(s.getKey())
+    print("In tree net graph, servers are:")
+    for s in tmpServerList:
+        print(s.getKey())
+
+    serverList_1 = tmpGroupList[0].getServerList()
+    path01 = tng.getShortestPath(serverList_1[0], serverList_1[1])
+    print("From %s to %s, path has links:" % (serverList_1[0].getKey(), serverList_1[1].getKey()))
+    print(path01.getLinkLengthList())
+    serverList_2 = tmpGroupList[2].getServerList()
+    path02 = tng.getShortestPath(serverList_1[0], serverList_2[0])
+    print("From %s to %s, path has links:" % (serverList_1[0].getKey(), serverList_2[0].getKey()))
+    print(path02.getLinkLengthList())
+    linkList = path02.getLinkList()
+    for l in linkList:
+        print("%s, head:%s, tail:%s, length:%d" %(l.getKey(), l.getHeadAP().getKey(), l.getTailAP().getKey(), l.getLinkLength()))
+
+    rootSwitch = tng.getRootSwitch()
+    path03 = tng.getShortestPath(rootSwitch, serverList_1[0])
+    print("From %s to %s, path has links:" % (rootSwitch.getKey(), serverList_1[0].getKey()))
+    print(path03.getLinkLengthList())
+    for l in path03.getLinkList():
+        print("%s, head:%s, tail:%s, length:%d" %(l.getKey(), l.getHeadAP().getKey(), l.getTailAP().getKey(), l.getLinkLength()))
+
+
 
         
 

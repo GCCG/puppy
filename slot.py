@@ -47,6 +47,12 @@ class Slot:
 
     def getTasks(self):
         return list(self._tasks)
+    
+    def getStatus(self):
+        status = ""
+        for t in self._tasks:
+            status = status + "." + t.getKey()
+        return status + "|"
 
 if __name__ == "__main__":
     st = Slot(parameters.CODE_RSC_LINK, 10)
