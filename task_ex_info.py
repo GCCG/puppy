@@ -1,6 +1,7 @@
 # Class TaskExInfo. When resource is allocated to corresponding task,
 # we should update it execution information in a TaskExInfo object.
 import sys
+import json
 
 from . import task
 from . import group
@@ -30,15 +31,17 @@ class TaskExInfo:
         self._transTimeList = []
         self._transBanList = []
         self._comTimeList = []
-        self._expectCompletionTime = 0
+        self._expectCompletionTime = -1
         if self._pathLen == 0:
-            print("In task_ex_info, meet a task with 0 path length, startAP:%s, endAP:%s." % \
-                (task.getAccessPoint().getKey(), task.getDispatchedServer().getKey()))
+            print("In task_ex_info, %s has 0 path length, startAP:%s, endAP:%s." % \
+                (task.getKey(), task.getAccessPoint().getKey(), task.getDispatchedServer().getKey()))
             self.transWaitTimeLen = 0
             self._transStartTime = task.getBirthTime()
             self._transEndTime = task.getBirthTime()
             self._remData = 0
             self.transTimeLen = 0
+    
+    
 
     
     def getCompletionTime(self):
@@ -108,6 +111,8 @@ class TaskExInfo:
         return self.remComTime == 0
 
     def deadlineIsSatisfied(self):
+        if self._expectCompletionTime == -1:
+            return False
         return self._expectCompletionTime <= self._taskDeadline
 
     def cancelScheduleFromNow(self, currentTime):
@@ -124,7 +129,7 @@ class TaskExInfo:
             if self._comTimeList[j] >= currentTime:
                 self._comTimeList = self._comTimeList[0:j]
                 break
-        print("In task_ex_info, task-%d's execution info cancelation from time %d finished" % (self._taskID, currentTime))
+        print("In task_ex_info, task-%d's execution info cancelation from time %d finished." % (self._taskID, currentTime))
         print("transTimeList:",self._transTimeList)
         print("comTimeList:",self._comTimeList)
 
@@ -176,6 +181,10 @@ class TaskExInfo:
     def getSchedule(self):
         pass
 
+    def jsonfy(self):
+        return json.dumps(self.__dict__, indent=4)
+
+
 
 if __name__ == "__main__":
     ng = net_graph.createANetGraph()
@@ -217,7 +226,7 @@ if __name__ == "__main__":
             tei.addComInfo(13)
             tei.addComInfo(14)
         tei.exInfoUpdate(i)
-
+    print(tei.jsonfy())
 
 
 

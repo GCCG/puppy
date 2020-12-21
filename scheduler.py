@@ -4,6 +4,7 @@ import sys
 import numpy as np
 import xlrd
 import xlwt
+import json
 from . import task_ex_info
 from . import resource_time_table
 from . import net_graph
@@ -119,10 +120,12 @@ class DedasScheduler(Scheduler):
             self._taskQueue = bestQueue
             self._taskExInfoDict = bestExInfoDict
             self._rscTimeTable = bestTimeTable
-            # print("Schedule finished:")
-            # self._rscTimeTable.printStatus()
+            print("Schedule finished:")
+            self._rscTimeTable.printStatus()
         # If insertion doesn't work, then try to replace 
         else:
+            # In replacing phase, better replacing should have ACT smaller than currentACT
+            bestACT = self._currentACT
             for i in range(len(self._taskQueue)):
                 tmpTaskQueue = copy.deepcopy(self._taskQueue)
                 tmpTaskExInfoDict = copy.deepcopy(self._taskExInfoDict)
@@ -154,20 +157,40 @@ class DedasScheduler(Scheduler):
 
         disposeList = []
         for i in len(self._taskQueue):
-             self._taskExInfoDict[self._taskQueue[i].getKey()].exInfoUpdate(currentTime)
-             if self._taskExInfoDict[self._taskQueue[i].getKey()].comIsFinished():
-                 tmpExInfo = self._taskExInfoDict[self._taskQueue[i].getKey()]
-                 if tmpExInfo.getExpectedComTime() != tmpExInfo.getComplettionTime():
-                     print("Something is wrong with your task execution information.")
-                 disposeList.append(i)
+            self._taskExInfoDict[self._taskQueue[i].getKey()].exInfoUpdate(currentTime)
+            if self._taskExInfoDict[self._taskQueue[i].getKey()].comIsFinished():
+                tmpExInfo = self._taskExInfoDict[self._taskQueue[i].getKey()]
+                if tmpExInfo.getExpectedComTime() != tmpExInfo.getComplettionTime():
+                    sys.exit("Something is wrong with your task execution information.")
+                print("%s is completed." % (self._taskQueue[i].getKey()))
+                disposeList.append(i)
+            if self._taskExInfoDict[self._taskQueue[i].getKey()].getExpectedComTime == parameters.NUM_FLOAT_INFINITY:
+                print("%s is discarded." % (self._taskQueue[i].getKey()))
+                disposeList.append(i)
         # Dispose taskExInfoDict and taskQueue
+        # First, save disposed task ex info
+        print("Tasks below is completed or discarded:")
+        taskExInfoList = []
+        for i in disposeList:
+            print(self._taskQueue[i].getKey)
+            taskExInfoList.append(self._taskExInfoDict[self._taskQueue[i].getKey()])
+        self._storeTaskExInfo(taskExInfoList)
+        # Then delete task ex info from taskExInfoDict, and and task from taskQueue
         for index in disposeList:
             del self._taskExInfoDict[self._taskQueue[index].getKey()]
             del self._taskQueue[index]
+
         # CTList = []
         # for t in self._taskQueue:
         #     CTList.append(self._taskExInfoDict[t.getKey()].getExpectedComTime())
         # self._currentACT = sum(CTList)/len(self._taskQueue)
+    
+    def _storeTaskExInfo(self, taskExInofList):
+        with open(parameters.PATH_TASK_EX_INFO_FILE, mode="a") as tmpFile:
+            tmpList = []
+            for tef in taskExInofList:
+                tmpList.append(tef.__dict__)
+            tmpFile.write(json.dumps(tmpList, indent=4))
 
     def __isJoint(self, taskA, taskB):
         """ 
@@ -244,6 +267,8 @@ class DedasScheduler(Scheduler):
             if tmpTaskExInfoDict[tmpTask.getKey()].deadlineIsSatisfied():
                 tmpDS = tmpDS + 1
             else:
+                print("%s can't be satisfied." % (tmpTask.getKey()))
+                tmpRscTimeTable.printStatus()
                 return self._currentACT, self._currentDS
         print("In scheduler, insertion ACT:%d, DS:%s." % (sum(CTList)/len(tmpTaskQueue), tmpDS))
         taskCTDict = {}
@@ -255,28 +280,52 @@ class DedasScheduler(Scheduler):
     
     def __dedasReplace(self, index, newTask, time, tmpTaskQueue, tmpTaskExInfoDict, tmpRscTimeTable):
         """ 
-        If replace is failed, then return schedule result before replace.
+        If replace is failed, then return schedule result before replacing.
          """
-        print("--------------In scheduler, replacing some task with %s." % (newTask.getKey()))
+        
         tmpTask = tmpTaskQueue[index]
-        tmpTaskQueue[index] = newTask
         tmpPath = self._netGraph.getShortestPath(tmpTask.getAccessPoint(), tmpTask.getDispatchedServer())
         tmpTaskExInfo = tmpTaskExInfoDict[tmpTask.getKey()]
+        print("--------------In scheduler, replacing %s with %s." % (tmpTask.getKey(), newTask.getKey()))
 
+        # Only replace task which passes the same link or has the same dispatched server.
         if not self.__isJoint(newTask, tmpTask):
+            print("In scheduler, replacing %s with %s failed, they don't joint." % (tmpTask.getKey(), newTask.getKey()))
             return self._currentACT, self._currentDS
         
-        if tmpTaskExInfo.getRemDataSize() >= newTask.getDataSize() and \
-            tmpTaskExInfo.getRemComTime() >= newTask.getComputeTime():
+        
+        # Get info of new task from netGraph and taskExInfoDict
+        newPath = self._netGraph.getShortestPath(newTask.getAccessPoint(), newTask.getDispatchedServer())
+        try:
+            remData = tmpTaskExInfoDict[newTask.getKey()].getRemDataSize()
+            remComTime = tmpTaskExInfoDict[newTask.getKey()].getRemComTime()
+        except KeyError:
+            # If newTask's ex info does not exist, then create it.
+            print("In scheduler, create task ex info for %s." % (newTask.getKey()))
+            tmpTaskExInfoDict[newTask.getKey()] = task_ex_info.TaskExInfo(newTask, newPath.getPathLength())
+            remData = tmpTaskExInfoDict[newTask.getKey()].getRemDataSize()
+            remComTime = tmpTaskExInfoDict[newTask.getKey()].getRemComTime()
+        
+        print("%s has remData:%d, remComTime:%d" % (newTask.getKey(), remData, remComTime))
+        print("%s has remData:%d, remComTime:%d" % (tmpTask.getKey(), tmpTaskExInfo.getRemDataSize(), tmpTaskExInfo.getRemComTime()))
+
+        # Only when newTask's  is smaller than the replaced one, replacing will happen.
+        if tmpTaskExInfo.getRemDataSize() >= remData and \
+            tmpTaskExInfo.getRemComTime() >= remComTime:
             # Recall remained resources of replaced task and wipe record about it.
             tmpRscTimeTable.recallRsc(time, tmpTask, tmpPath)
             tmpTaskExInfo.cancelScheduleFromNow(time)
-            # Get info of new task
-            newPath = self._netGraph.getShortestPath(newTask.getAccessPoint(), newTask.getDispatchedServer())
-            remData = newTask.getDataSize()
-            remComTime = newTask.getComputeTime()
+
+            # Put newTask into tmpTaskQueue
+            tmpTaskQueue[index] = newTask
+            ts = ""
+            for t in tmpTaskQueue:
+                ts = ts + "." + t.getKey()
+            print("In scheduler, tmpTaskQueue is: %s" % (ts))
+
             startTime = time-1
             endTime = 0
+
             # First, allocate bandwidth resource and record it.
             while remData > 0:
                 startTime, endTime, ban = tmpRscTimeTable.allocateLinkSlot(newTask, startTime + 1, newPath)
@@ -291,17 +340,48 @@ class DedasScheduler(Scheduler):
                 tmpTaskExInfoDict[newTask.getKey()].addComInfo(startTime)
             tmpTaskExInfoDict[newTask.getKey()].setExpectedComTime(endTime - time)
             if not tmpTaskExInfoDict[newTask.getKey()].deadlineIsSatisfied():
+                print("In scheduler, %s is replaced into taskQueue, but it still can't be satisfied." % (newTask.getKey()))
+                tmpRscTimeTable.printStatus()
+
+                # Discard newTask
+                tmpTaskExInfoDict[newTask.getKey()].setExpectedComTime(parameters.NUM_FLOAT_INFINITY)
+                
                 # return self._currentACT, self._currentDS
-                sys.exit("Something is wrong with your function __dedasReplace.")
+                return self._currentACT, self._currentDS
             else:
+                print("In scheduler, replacing succeed, replace %s with %s." % (tmpTask.getKey(), newTask.getKey()))
                 CTList = []
                 for t in tmpTaskQueue:
                     CTList.append(tmpTaskExInfoDict[t.getKey()].getExpectedComTime())
+                print("In scheduler, replace ACT:%d, DS:%d." %( sum(CTList)/len(CTList), self._currentDS))
+                taskCTDict = {}
+                for i in range(len(CTList)):
+                    taskCTDict[tmpTaskQueue[i].getKey()] = CTList[i]
+                print("In schedule, tasks' completion time is:",taskCTDict)
+                tmpRscTimeTable.printStatus()
+
+                # Discard tmpTask
+                tmpTaskExInfo.setExpectedComTime(parameters.NUM_FLOAT_INFINITY)
+
                 return sum(CTList)/len(tmpTaskQueue), self._currentDS
         else:
+            print("In scheduler, replacing %s with %s failed, %s is not smaller than %s." % (tmpTask.getKey(), newTask.getKey(), newTask.getKey(), tmpTask.getKey()))
             return self._currentACT, self._currentDS
+
     def printRTTStatus(self):
         self._rscTimeTable.printStatus()
+    
+    def saveRTTStatus(self, sheetName):
+        myWorkbook = xlwt.Workbook(encoding='utf-8')
+        sheet = myWorkbook.add_sheet(sheetName)
+        self._rscTimeTable.saveStatusIntoXlsSheet(sheet)
+        # sheet.write(1,0 , "fuckyou")
+        myWorkbook.save(parameters.PATH_TEST_FILE)
+    
+    def saveTaskExInfo(self):
+        self._storeTaskExInfo(list(self._taskExInfoDict.values()))
+
+        
 
 if __name__ == "__main__":
     ng = net_graph.createANetGraph()
@@ -309,19 +389,22 @@ if __name__ == "__main__":
     taskList = []
     serverList = ng.getServerList()
     taskTypeNameList = [parameters.CODE_TASK_TYPE_IoT, parameters.CODE_TASK_TYPE_VA, parameters.CODE_TASK_TYPE_VR]
+    
     for i in range(len(serverList)):
         for name in taskTypeNameList:
-            tmpTask = task.Task(name, serverList[i], 40, 0, 5, 10)
+            tmpTask = task.Task(name, serverList[i], 20, 0, 10, 30)
             tmpTask.setDispatchedServer(serverList[np.random.randint(0, len(serverList))])
             taskList.append(tmpTask)
     print("task num is:%d" % (len(taskList)))
 
     for t in taskList[0:4]:
-        #ACT, DS, taskIsSatisfied = ds.schedulePlan(t, 0)
-        #print("Plan: ACT:%d, DS:%d, taskIsSatisfied:%s" % (ACT, DS, taskIsSatisfied))
-        ACT, DS = ds.schedule(t, 0)
-        print("Schedule: ACT:%d, DS:%d." % (ACT, DS))
+        ACT, DS, taskIsSatisfied = ds.schedulePlan(t, 0)
+        print("Plan: ACT:%d, DS:%d, taskIsSatisfied:%s" % (ACT, DS, taskIsSatisfied))
+        # ACT, DS = ds.schedule(t, 0)
+        # print("Schedule: ACT:%d, DS:%d." % (ACT, DS))
         ds.printRTTStatus()
+    ds.saveRTTStatus('testSheet')
+    # ds.saveTaskExInfo()
     
         
 

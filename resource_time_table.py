@@ -1,5 +1,9 @@
 # Class ResourceTimeTable
 import sys
+import xlrd
+import xlwt
+
+
 from . import slot
 from . import parameters
 from . import net_ap
@@ -196,13 +200,23 @@ class ResourceTimeTable:
 
     def printStatus(self):
         keyList = list(self._rsc2SlotRowDict.keys())
-        for index in range(20):
+        for index in range(25):
             status = str(index) + "---|"
             for key in keyList:
-                status = status + self._rsc2SlotRowDict[key][index].getStatus()
+                status = status + self._rsc2SlotRowDict[key][index].getStatus() + "|"
             print(status)
         # for key in keyList:
         #     print(key," has %d slots." % (len(self._rsc2SlotRowDict[key])))
+    
+    def saveStatusIntoXlsSheet(self, targetSheet):
+        keyList = list(self._rsc2SlotRowDict.keys())
+        for i in range(len(keyList)):
+            targetSheet.write(0, i, keyList[i])
+        for index in range(self._slotNum):
+            for ki in range(len(keyList)):
+                targetSheet.write(index+1, ki, self._rsc2SlotRowDict[keyList[ki]][index].getStatus())
+        
+
                 
 
 

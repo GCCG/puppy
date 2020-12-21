@@ -52,7 +52,7 @@ class Slot:
         status = ""
         for t in self._tasks:
             status = status + "." + t.getKey()
-        return status + "|"
+        return status
 
 if __name__ == "__main__":
     st = Slot(parameters.CODE_RSC_LINK, 10)
