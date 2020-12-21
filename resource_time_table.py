@@ -73,7 +73,7 @@ class ResourceTimeTable:
             tmpIndex = tmpIndex + linkLenList[i]
         # Return time of allocated slot and allocated bandwidth.
         startTime = index + self._slotStartTime
-        endTime = tmpIndex + self._slotStartTime
+        endTime = tmpIndex + self._slotStartTime + 1
         return startTime, endTime, slotBan
 
     def allocateServerSlot(self, task, time, server):

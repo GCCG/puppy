@@ -2,6 +2,7 @@
 # we should update it execution information in a TaskExInfo object.
 import sys
 import json
+import math
 
 from . import task
 from . import group
@@ -18,7 +19,7 @@ class TaskExInfo:
         self.transWaitTimeLen = 0
         self.transTimeLen = 0
         self.comWaitTimeLen = 0
-        self.comTimeLen = task.getComputeTime()
+        self.comTimeLen = math.ceil(task.getComputeTime())
 
         self.remData = task.getDataSize()
         self.remComTime = task.getComputeTime()
@@ -47,11 +48,11 @@ class TaskExInfo:
     def getCompletionTime(self):
         return self.transTimeLen + self.transWaitTimeLen + self._pathLen*2 + self.comWaitTimeLen + self.comTimeLen
 
-    def setExpectedComTime(self, comTime):
-        self._expectCompletionTime = comTime
+    def setExpectedComTime(self, comEndTime):
+        self._expectCompletionTime = comEndTime - self._arrivalTime
 
     def getExpectedComTime(self):
-        return self._expectCompletionTime
+        return self._expectCompletionTime + self._pathLen
 
     def getRemDataSize(self):
         return self.remData
@@ -135,19 +136,23 @@ class TaskExInfo:
 
     def exInfoUpdate(self, time):
         # print("remComTime:%d, comEndTime:%d" % (self.remComTime, self._comEndTime))
+        print("Before update task-%d' ex info, info is:" % (self._taskID))
+        print(self.__dict__)
         if self.remComTime == 0 and self._comEndTime < time:
             print("In task_ex_info, something is wrong with your program, task has finished at time %d, current time is %d" %(self._comEndTime, time))
         for i in range(len(self._transTimeList)):
             if self._transTimeList[i] == time:
                 if self._transStartTime == -1:
                     self._transStartTime = time
-                    self._transEndTime = time
-                self.transWaitTimeLen = self.transWaitTimeLen + time - self._transEndTime
+                    self._transEndTime = time + self._pathLen + 1
+                    self.transWaitTimeLen =  time - self._arrivalTime
+                else:
+                    self.transWaitTimeLen = self.transWaitTimeLen + time - (self._transEndTime - self._pathLen)
                 self.transTimeLen = self.transTimeLen + 1
                 self._transEndTime = time + self._pathLen + 1
                 if self.remData < self._transBanList[i]:
                     self.remData = 0
-                    print("Data transmission of task %d is finished.", self._taskID)
+                    print("Data transmission of task %d is finished at time %d." % (self._taskID, time))
                     return False
                 else:
                     self.remData = self.remData - self._transBanList[i]
@@ -155,17 +160,16 @@ class TaskExInfo:
             elif self._transTimeList[i] > time:
                 break
         for i in range(len(self._comTimeList)):
-            if self._comTimeList[i] > time:
-                break
-            elif self._comTimeList[i] == time:
+            if self._comTimeList[i] == time:
                 if self._comStartTime == -1:
                     # print("setting")
                     if time < self._transEndTime:
                         sys.exit("Something is wrong with your program, task computation should start after time %d, now is %d" % (self._transEndTime, time))
                     self._comStartTime = time
                     self._comEndTime = time + 1
-                    self.comWaitTimeLen = self._comStartTime - self._transEndTime
-                self.comWaitTimeLen = self.comWaitTimeLen + time - self._comEndTime
+                    self.comWaitTimeLen = self._comStartTime - self._transEndTime #- 1
+                else:
+                    self.comWaitTimeLen = self.comWaitTimeLen + time - self._comEndTime
                 
                 if self.remComTime >= 1:
                     self._comEndTime = time + 1

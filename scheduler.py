@@ -5,6 +5,7 @@ import numpy as np
 import xlrd
 import xlwt
 import json
+import os
 from . import task_ex_info
 from . import resource_time_table
 from . import net_graph
@@ -149,32 +150,35 @@ class DedasScheduler(Scheduler):
         Each after the scheduling, we should use this funciton to 
         update scheduler state to fix scheduling result of current time slot.
          """
-        if self._currentTime == currentTime - 1:
+        if self._currentTime == 0 or self._currentTime == currentTime - 1:
             self._currentTime = currentTime
         else:
             print("Something is wrong with your dispatching loop.")
             return
-
+        print("In scheduler, update at time %d:" % (currentTime))
         disposeList = []
-        for i in len(self._taskQueue):
+        for i in range(len(self._taskQueue)):
             self._taskExInfoDict[self._taskQueue[i].getKey()].exInfoUpdate(currentTime)
             if self._taskExInfoDict[self._taskQueue[i].getKey()].comIsFinished():
                 tmpExInfo = self._taskExInfoDict[self._taskQueue[i].getKey()]
-                if tmpExInfo.getExpectedComTime() != tmpExInfo.getComplettionTime():
+                if tmpExInfo.getExpectedComTime() != tmpExInfo.getCompletionTime():
+                    print("%s' expected_completion_time:%d, real_completion_time:%d" % (self._taskQueue[i].getKey(), tmpExInfo.getExpectedComTime(), tmpExInfo.getCompletionTime()))
                     sys.exit("Something is wrong with your task execution information.")
                 print("%s is completed." % (self._taskQueue[i].getKey()))
                 disposeList.append(i)
             if self._taskExInfoDict[self._taskQueue[i].getKey()].getExpectedComTime == parameters.NUM_FLOAT_INFINITY:
                 print("%s is discarded." % (self._taskQueue[i].getKey()))
                 disposeList.append(i)
+        
         # Dispose taskExInfoDict and taskQueue
         # First, save disposed task ex info
-        print("Tasks below is completed or discarded:")
-        taskExInfoList = []
-        for i in disposeList:
-            print(self._taskQueue[i].getKey)
-            taskExInfoList.append(self._taskExInfoDict[self._taskQueue[i].getKey()])
-        self._storeTaskExInfo(taskExInfoList)
+        if len(disposeList) > 0:
+            print("Tasks below is completed or discarded:")
+            taskExInfoList = []
+            for i in disposeList:
+                print(self._taskQueue[i].getKey())
+                taskExInfoList.append(self._taskExInfoDict[self._taskQueue[i].getKey()])
+            self._storeTaskExInfo(taskExInfoList)
         # Then delete task ex info from taskExInfoDict, and and task from taskQueue
         for index in disposeList:
             del self._taskExInfoDict[self._taskQueue[index].getKey()]
@@ -262,8 +266,8 @@ class DedasScheduler(Scheduler):
                 startTime, endTime = tmpRscTimeTable.allocateServerSlot(tmpTask,endTime, tmpTask.getDispatchedServer())
                 remComTime = remComTime - 1
                 tmpTaskExInfoDict[tmpTask.getKey()].addComInfo(startTime)
-            CTList.append(endTime - time)
-            tmpTaskExInfoDict[tmpTask.getKey()].setExpectedComTime(endTime - time)
+            tmpTaskExInfoDict[tmpTask.getKey()].setExpectedComTime(endTime)
+            CTList.append(tmpTaskExInfoDict[tmpTask.getKey()].getExpectedComTime())
             if tmpTaskExInfoDict[tmpTask.getKey()].deadlineIsSatisfied():
                 tmpDS = tmpDS + 1
             else:
@@ -384,27 +388,34 @@ class DedasScheduler(Scheduler):
         
 
 if __name__ == "__main__":
+    if os.path.exists(parameters.PATH_TASK_EX_INFO_FILE):
+        os.remove(parameters.PATH_TASK_EX_INFO_FILE)
+
     ng = net_graph.createANetGraph()
-    ds = DedasScheduler(ng, 40, 0)
+    ds = DedasScheduler(ng, 50, 0)
     taskList = []
     serverList = ng.getServerList()
     taskTypeNameList = [parameters.CODE_TASK_TYPE_IoT, parameters.CODE_TASK_TYPE_VA, parameters.CODE_TASK_TYPE_VR]
     
     for i in range(len(serverList)):
         for name in taskTypeNameList:
-            tmpTask = task.Task(name, serverList[i], 20, 0, 10, 30)
+            tmpTask = task.Task(name, serverList[i], 30, 0, 10, 30)
             tmpTask.setDispatchedServer(serverList[np.random.randint(0, len(serverList))])
             taskList.append(tmpTask)
     print("task num is:%d" % (len(taskList)))
 
     for t in taskList[0:4]:
-        ACT, DS, taskIsSatisfied = ds.schedulePlan(t, 0)
-        print("Plan: ACT:%d, DS:%d, taskIsSatisfied:%s" % (ACT, DS, taskIsSatisfied))
-        # ACT, DS = ds.schedule(t, 0)
-        # print("Schedule: ACT:%d, DS:%d." % (ACT, DS))
+        # ACT, DS, taskIsSatisfied = ds.schedulePlan(t, 0)
+        # print("Plan: ACT:%d, DS:%d, taskIsSatisfied:%s" % (ACT, DS, taskIsSatisfied))
+        ACT, DS = ds.schedule(t, 0)
+        print("Schedule: ACT:%d, DS:%d." % (ACT, DS))
         ds.printRTTStatus()
     ds.saveRTTStatus('testSheet')
-    # ds.saveTaskExInfo()
+    
+
+    for i in range(30):
+        ds.update(i)
+        ds.saveTaskExInfo()
     
         
 
