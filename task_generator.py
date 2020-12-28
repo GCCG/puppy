@@ -1,12 +1,14 @@
 # Class TaskGenerator
 import numpy as np
 import copy
+import sys
 from . import net_ap
 from . import net_link
 from . import task
 from . import user
 from . import user_type
 from . import parameters
+from . import task_type
 
 from . import group
 from . import group_trans
@@ -35,7 +37,7 @@ class TaskGenerator:
             for typeK in list(taskGenInfoDict.keys()):
                 taskGenNum = np.random.poisson(taskGenInfoDict[typeK][0])
                 for i in range(taskGenNum):
-                    tmpList.append(self._taskTypeDict[typeK].createTask(u.getCurrentServer, time))
+                    tmpList.append(self._taskTypeDict[typeK].createTask(u.getCurrentServer(), time))
         # use its task generation information to generate tasks
         self._taskList.extend(tmpList)
         self._taskNum = self._taskNum + len(tmpList)
@@ -57,6 +59,11 @@ class TaskGenerator:
     
     def getUsers(self):
         return list(self._userList)
+
+    def addTaskType(self, defaultDataSize, defaultComputeSize, defaultTimeLimit, taskTypeName):
+        if type(taskTypeName) != str:
+            sys.exit("In task_generator, taskTypeName should be a string.")
+        self._taskTypeDict[taskTypeName] = task_type.TaskType(defaultDataSize, defaultComputeSize, defaultTimeLimit, taskTypeName)
          
     def _generateUser(self, initGroup, userTypeName):
         tmpUserType = self._userTypeDict[userTypeName]
@@ -71,7 +78,7 @@ if __name__ == "__main__":
     gtCompany = group_type.createAGroupType(parameters.CODE_GROUP_TYPE_COMPANY)
     gtCommunity = group_type.createAGroupType(parameters.CODE_GROUP_TYPE_COMMMUNITY)
     groupList = []
-    for i in range(10):
+    for i in range(2):
         groupList.append(group.createAGroup(gtBusiness))
         groupList.append(group.createAGroup(gtCommunity))
         groupList.append(group.createAGroup(gtCompany))
@@ -83,6 +90,12 @@ if __name__ == "__main__":
     tg.addUserType(parameters.CODE_USER_TYPE_OTAKU, gTrans)
     tg.addUserType(parameters.CODE_USER_TYPE_SALARY_MAN, gTrans)
     tg.addUserType(parameters.CODE_USER_TYPE_RICH_MAN, gTrans)
+
+    tg.addTaskType(10, 15, 30, parameters.CODE_TASK_TYPE_IoT)
+    tg.addTaskType(defaultDataSize=20, defaultComputeSize=20, defaultTimeLimit=30, taskTypeName=parameters.CODE_TASK_TYPE_VA)
+    tg.addTaskType(defaultDataSize=5, defaultComputeSize=20, defaultTimeLimit=30, taskTypeName=parameters.CODE_TASK_TYPE_VR)
+
+
     for g in groupList:
         tg.generateUsers(g, 2, parameters.CODE_USER_TYPE_RICH_MAN)
         tg.generateUsers(g, 2, parameters.CODE_USER_TYPE_OTAKU)
@@ -95,5 +108,12 @@ if __name__ == "__main__":
             (before[i].getKey(),before[i].getCurrentGroup().getKey(), before[i].getCurrentServer().getKey()))
         print("After- trans, %s, current_group:%s , current_server:%s" % \
             (after[i].getKey(),after[i].getCurrentGroup().getKey(), after[i].getCurrentServer().getKey()))
+
+    print("------Generating tasks:")
+    taskList = tg.generateTasks(0)
+    for t in taskList:
+        print(t.getKey())
+        print("%s's info, access_point:%s, dispatched_server:%s, dada_size:%d, computation_size:%d." % \
+            (t.getKey(), t.getAccessPoint().getKey(), t.getDispatchedServer().getKey(), t.getDataSize(), t.getComputeTime()))
 
 

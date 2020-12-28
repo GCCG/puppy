@@ -26,6 +26,10 @@ class Scheduler:
         self._currentACT = parameters.NUM_FLOAT_INFINITY
         self._currentDS = 0
 
+        self._servedTaskNum = 0
+        self._completedTaskNum = 0
+        self._completedACT = 0
+
     def schedule(self, newTask, time):
         """ task provided here should be assigned with a server. """
         sys.exit("You should implement function schedule in subclass")
@@ -42,8 +46,30 @@ class Scheduler:
         sys.exit("You should implement function getNetGraph in subclass")
         pass
 
-    def getResult(self):
-        return self._currentACT, self._currentDS
+    # def getResult(self):
+    #     return self._completedACT, self._completedTaskNum
+    
+    def getCurrentACT(self):
+        return self._currentACT
+
+    def getCurrentDS(self):
+        return self._currentDS
+    
+    def getCompletedTaskACT(self):
+        return self._completedACT
+
+    def getCompletedTaskNum(self):
+        return self._completedTaskNum
+    
+    def getServedTaskNum(self):
+        return self._servedTaskNum
+    
+    def _updateResult(self, taskCompletionTime):
+        self._servedTaskNum = self._servedTaskNum + 1
+        if taskCompletionTime < parameters.NUM_FLOAT_INFINITY:
+            self._completedACT = (self._completedACT*self._completedTaskNum + taskCompletionTime) / (self._completedTaskNum + 1)
+            self._completedTaskNum = self._completedTaskNum + 1
+
 
 
 class DedasScheduler(Scheduler):
@@ -138,11 +164,21 @@ class DedasScheduler(Scheduler):
                     bestQueue = tmpTaskQueue
                     bestExInfoDict = tmpTaskExInfoDict
                     bestTimeTable = tmpRscTimeTable
+            # If we got a replacing better than current schedule
             if bestIndex >= 0:
                 self._currentACT = bestACT
                 self._taskQueue = bestQueue
                 self._taskExInfoDict = bestExInfoDict
                 self._rscTimeTable = bestTimeTable
+            # Or we don't got an acceptable replacing, we should set this task as discarded.
+            else:
+                print("%s is discarded." % (newTask.getKey()))
+                try:
+                    self._taskExInfoDict[newTask.getKey()].setExpectedComTime(parameters.NUM_FLOAT_INFINITY)
+                except KeyError:
+                    self._taskExInfoDict[newTask.getKey()] = task_ex_info.TaskExInfo(newTask, \
+                        self._netGraph.getShortestPath(newTask.getAccessPoint(), newTask.getDispatchedServer()).getPathLength())
+                    self._taskExInfoDict[newTask.getKey()].setExpectedComTime(parameters.NUM_FLOAT_INFINITY)
         return self._currentACT, self._currentDS
 
     def update(self, currentTime):
@@ -157,32 +193,67 @@ class DedasScheduler(Scheduler):
             return
         print("In scheduler, update at time %d:" % (currentTime))
         disposeList = []
-        for i in range(len(self._taskQueue)):
-            self._taskExInfoDict[self._taskQueue[i].getKey()].exInfoUpdate(currentTime)
-            if self._taskExInfoDict[self._taskQueue[i].getKey()].comIsFinished():
-                tmpExInfo = self._taskExInfoDict[self._taskQueue[i].getKey()]
+        # for i in range(len(self._taskQueue)):
+        #     self._taskExInfoDict[self._taskQueue[i].getKey()].exInfoUpdate(currentTime)
+        #     if self._taskExInfoDict[self._taskQueue[i].getKey()].comIsFinished():
+        #         tmpExInfo = self._taskExInfoDict[self._taskQueue[i].getKey()]
+        #         if tmpExInfo.getExpectedComTime() != tmpExInfo.getCompletionTime():
+        #             print("%s' expected_completion_time:%d, real_completion_time:%d" % (self._taskQueue[i].getKey(), tmpExInfo.getExpectedComTime(), tmpExInfo.getCompletionTime()))
+        #             sys.exit("Something is wrong with your task execution information.")
+        #         print("%s is completed." % (self._taskQueue[i].getKey()))
+        #         disposeList.append(i)
+        #     if self._taskExInfoDict[self._taskQueue[i].getKey()].getExpectedComTime == parameters.NUM_FLOAT_INFINITY:
+        #         print("%s is discarded." % (self._taskQueue[i].getKey()))
+        #         disposeList.append(i)
+        
+        for k in list(self._taskExInfoDict.keys()):
+            self._taskExInfoDict[k].exInfoUpdate(currentTime)
+            tmpExInfo = self._taskExInfoDict[k]
+            if self._taskExInfoDict[k].comIsFinished():
                 if tmpExInfo.getExpectedComTime() != tmpExInfo.getCompletionTime():
                     print("%s' expected_completion_time:%d, real_completion_time:%d" % (self._taskQueue[i].getKey(), tmpExInfo.getExpectedComTime(), tmpExInfo.getCompletionTime()))
                     sys.exit("Something is wrong with your task execution information.")
-                print("%s is completed." % (self._taskQueue[i].getKey()))
-                disposeList.append(i)
-            if self._taskExInfoDict[self._taskQueue[i].getKey()].getExpectedComTime == parameters.NUM_FLOAT_INFINITY:
-                print("%s is discarded." % (self._taskQueue[i].getKey()))
-                disposeList.append(i)
+                print("%s is completed." % (k))
+                disposeList.append(tmpExInfo)
+            elif tmpExInfo.getExpectedComTime() >= parameters.NUM_FLOAT_INFINITY:
+                print("%s is discarded." % (k))
+                disposeList.append(tmpExInfo)
+
         
         # Dispose taskExInfoDict and taskQueue
         # First, save disposed task ex info
+        
         if len(disposeList) > 0:
-            print("Tasks below is completed or discarded:")
-            taskExInfoList = []
-            for i in disposeList:
-                print(self._taskQueue[i].getKey())
-                taskExInfoList.append(self._taskExInfoDict[self._taskQueue[i].getKey()])
-            self._storeTaskExInfo(taskExInfoList)
+            self._storeTaskExInfo(disposeList)
+            # taskExInfoList = []
+            # for i in disposeList:
+            #     print(self._taskQueue[i].getKey())
+            #     taskExInfoList.append(self._taskExInfoDict[self._taskQueue[i].getKey()])
+            # self._storeTaskExInfo(taskExInfoList)
+            
         # Then delete task ex info from taskExInfoDict, and and task from taskQueue
-        for index in disposeList:
-            del self._taskExInfoDict[self._taskQueue[index].getKey()]
-            del self._taskQueue[index]
+        count = 0
+        for index in range(len(self._taskQueue)):
+            if self._taskExInfoDict[self._taskQueue[index - count].getKey()].comIsFinished():
+                del self._taskQueue[index - count]
+                count = count + 1
+        for k in list(self._taskExInfoDict.keys()):
+            if self._taskExInfoDict[k].comIsFinished():
+                print("%s is completed." % (k))
+                self._updateResult(taskCompletionTime=self._taskExInfoDict[k].getCompletionTime())
+                del self._taskExInfoDict[k]
+            elif self._taskExInfoDict[k].getExpectedComTime() >= parameters.NUM_FLOAT_INFINITY:
+                print("%s is discarded." % (k))
+                self._updateResult(taskCompletionTime=self._taskExInfoDict[k].getCompletionTime())
+                del self._taskExInfoDict[k]
+
+        # disposeList.sort()
+        # count = 0
+        # for index in disposeList:
+            
+        #     del self._taskExInfoDict[self._taskQueue[index - count].getKey()]
+        #     del self._taskQueue[index - count]
+        #     count = count + 1
 
         # CTList = []
         # for t in self._taskQueue:
@@ -385,6 +456,8 @@ class DedasScheduler(Scheduler):
     def saveTaskExInfo(self):
         self._storeTaskExInfo(list(self._taskExInfoDict.values()))
 
+
+
         
 
 if __name__ == "__main__":
@@ -392,7 +465,7 @@ if __name__ == "__main__":
         os.remove(parameters.PATH_TASK_EX_INFO_FILE)
 
     ng = net_graph.createANetGraph()
-    ds = DedasScheduler(ng, 50, 0)
+    ds = DedasScheduler(ng, 100, 0)
     taskList = []
     serverList = ng.getServerList()
     taskTypeNameList = [parameters.CODE_TASK_TYPE_IoT, parameters.CODE_TASK_TYPE_VA, parameters.CODE_TASK_TYPE_VR]
@@ -411,7 +484,6 @@ if __name__ == "__main__":
         print("Schedule: ACT:%d, DS:%d." % (ACT, DS))
         ds.printRTTStatus()
     ds.saveRTTStatus('testSheet')
-    
 
     for i in range(30):
         ds.update(i)

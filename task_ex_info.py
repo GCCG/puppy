@@ -32,7 +32,7 @@ class TaskExInfo:
         self._transTimeList = []
         self._transBanList = []
         self._comTimeList = []
-        self._expectCompletionTime = -1
+        self._expectedComEndTime = -1
         if self._pathLen == 0:
             print("In task_ex_info, %s has 0 path length, startAP:%s, endAP:%s." % \
                 (task.getKey(), task.getAccessPoint().getKey(), task.getDispatchedServer().getKey()))
@@ -46,13 +46,21 @@ class TaskExInfo:
 
     
     def getCompletionTime(self):
-        return self.transTimeLen + self.transWaitTimeLen + self._pathLen*2 + self.comWaitTimeLen + self.comTimeLen
+        if self._expectedComEndTime >= parameters.NUM_FLOAT_INFINITY:
+            return self._expectedComEndTime
+        else:
+            return self.transTimeLen + self.transWaitTimeLen + self._pathLen*2 + self.comWaitTimeLen + self.comTimeLen
 
     def setExpectedComTime(self, comEndTime):
-        self._expectCompletionTime = comEndTime - self._arrivalTime
+        if comEndTime == parameters.NUM_FLOAT_INFINITY:
+            self._expectedComEndTime = parameters.NUM_FLOAT_INFINITY
+        elif comEndTime >= self._arrivalTime:
+            self._expectedComEndTime = comEndTime - self._arrivalTime
+        else:
+            sys.exit("In task_ex_info, something is wrong with your scheduler, comEndTime is smaller than arrivalTime.")
 
     def getExpectedComTime(self):
-        return self._expectCompletionTime + self._pathLen
+        return self._expectedComEndTime + self._pathLen
 
     def getRemDataSize(self):
         return self.remData
@@ -112,9 +120,9 @@ class TaskExInfo:
         return self.remComTime == 0
 
     def deadlineIsSatisfied(self):
-        if self._expectCompletionTime == -1:
+        if self._expectedComEndTime == -1:
             return False
-        return self._expectCompletionTime <= self._taskDeadline
+        return self._expectedComEndTime <= self._taskDeadline
 
     def cancelScheduleFromNow(self, currentTime):
         if self.remComTime == 0 and currentTime >= self._comEndTime:
@@ -136,8 +144,8 @@ class TaskExInfo:
 
     def exInfoUpdate(self, time):
         # print("remComTime:%d, comEndTime:%d" % (self.remComTime, self._comEndTime))
-        print("Before update task-%d' ex info, info is:" % (self._taskID))
-        print(self.__dict__)
+        # print("Before update task-%d' ex info, info is:" % (self._taskID))
+        # print(self.__dict__)
         if self.remComTime == 0 and self._comEndTime < time:
             print("In task_ex_info, something is wrong with your program, task has finished at time %d, current time is %d" %(self._comEndTime, time))
         for i in range(len(self._transTimeList)):

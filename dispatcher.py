@@ -4,6 +4,8 @@ from . import net_ap
 from . import task_generator
 from . import scheduler
 from . import parameters
+from . import net_graph
+from . import group_trans
 
 class Dispatcher:
     def __init__(self, currentTime, taskGenerator):
@@ -35,18 +37,19 @@ class Dispatcher:
 
 
 class DedasDispatcher(Dispatcher):
-    def __init__(self, currentTime, currentScheduler, taskGenerator):
-        Dispatcher.__init__(self, currentTime, taskGenerator)
+    def __init__(self, currentTime, currentScheduler):
+        Dispatcher.__init__(self, currentTime)
         self._scheduler = currentScheduler
 
     def dispatch(self, newTask):
         targetServer = None
         serverList = self._getAvailableServerList()
-        bestACT, bestDS = self._scheduler.getResult()
+        bestACT = self._scheduler.getCurrentACT()
+        bestDS = self._scheduler.getCurrentDS()
         for ser in serverList:
             newTask.setDispatchedServer(ser)
             ACT, DS = self._scheduler.schedulePlan(newTask, self._currentTime)
-            if DS > bestDS or (DS == bestACT and ACT < bestACT):
+            if DS > bestDS or (DS == bestDS and ACT < bestACT):
                 targetServer = ser
                 bestACT = ACT
                 bestDS = DS
@@ -55,4 +58,22 @@ class DedasDispatcher(Dispatcher):
         if ACT != bestACT or DS != bestDS:
             sys.exit("Something is wrong with your scheduler.")
 
+if __name__ == "__main__":
+    ng = net_graph.createATreeGraph()
+    ds = scheduler.DedasScheduler(ng, 50, 0)
+    dd = DedasDispatcher(0,ds)
 
+    tg = task_generator.TaskGenerator()
+    gTrans = group_trans.createAGroupTrans(ng.getGroupList())
+    tg.addUserType(parameters.CODE_USER_TYPE_OTAKU, gTrans)
+    tg.addUserType(parameters.CODE_USER_TYPE_RICH_MAN, gTrans)
+    tg.addUserType(parameters.CODE_USER_TYPE_SALARY_MAN, gTrans)
+
+    for g in ng.getGroupList():
+        tg.generateUsers(g, 3, parameters.CODE_USER_TYPE_OTAKU)
+        tg.generateUsers(g, 2, parameters.CODE_USER_TYPE_SALARY_MAN)
+        tg.generateUsers(g, 2, parameters.CODE_USER_TYPE_RICH_MAN)
+    
+    taskList = tg.generateTasks(0)
+    for t  in taskList:
+        print("%s, access_point:%s, type_name:" %(t.getKey(), t.getAccessPoint().getKey(), ))

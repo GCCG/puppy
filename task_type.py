@@ -1,7 +1,10 @@
 # Class TaskType
+import sys
+
 from . import task
 from . import parameters
 from . import group
+from . import net_ap
 
 
 class TaskType:
@@ -13,6 +16,8 @@ class TaskType:
 
     
     def createTask(self, accessPoint, birthTime, timeLimit=None):
+        if type(accessPoint) != net_ap.NetAP:
+            sys.exit("In task_type, accessPoint should be an NetAP object, but it is of type %s" % (type(accessPoint)))
         if timeLimit == None:
             timeLimit = self._defaultTimeLimit
         return task.Task(self._typeName, accessPoint, birthTime+timeLimit, birthTime,
