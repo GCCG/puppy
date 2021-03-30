@@ -25,6 +25,12 @@ class TaskType:
 
     def getTaskTypeName(self):
         return self._typeName
+    
+    def getDefaultDataSize(self):
+        return self._defaultDataSize
+
+    def getDefaultComputeSize(self):
+        return self._defaultComputeSize
 
 if __name__=='__main__':
     tp = TaskType(20, 15, 30, parameters.CODE_TASK_TYPE_VA)

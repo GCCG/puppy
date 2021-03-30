@@ -177,6 +177,7 @@ class TreeNetGraph(NetGraph):
             # tmpServer = net_ap.NetAP(parameters.CODE_SERVER, self._generateApID(),
             # type.generateServerRsc(),self._generateServerID(), serverGroup)
             tmpServer = self.addServer(type.generateServerRsc())
+            tmpServer.setGroup(serverGroup)
             serverGroup.addServer(tmpServer)
 
             bandwidth = type.generateLinkBan()
@@ -242,10 +243,13 @@ def createANetGraph():
     return  ng
 
 def createATreeGraph():
+
+    # Control system model here.
+
     tng = TreeNetGraph()
     gtBusiness = group_type.GroupType(defaultServerNum=3, typeName=parameters.CODE_GROUP_TYPE_BUSINESS)
     gtBusiness.addTaskGenInfo(parameters.CODE_TASK_TYPE_IoT, 4,5)
-    gtBusiness.addTaskGenInfo(parameters.CODE_TASK_TYPE_VA, 10, 5)
+    gtBusiness.addTaskGenInfo(parameters.CODE_TASK_TYPE_VA, 1, 5)
     gtBusiness.addTaskGenInfo(parameters.CODE_TASK_TYPE_VR, 2, 8)
     gtBusiness.expandBandwidthList(10)
     gtBusiness.expandBandwidthList(15)
@@ -261,7 +265,7 @@ def createATreeGraph():
 
     gtCommunity = group_type.GroupType(defaultServerNum=3, typeName=parameters.CODE_GROUP_TYPE_COMMMUNITY)
     gtCommunity.addTaskGenInfo(parameters.CODE_TASK_TYPE_IoT, 4,5)
-    gtCommunity.addTaskGenInfo(parameters.CODE_TASK_TYPE_VA, 10, 5)
+    gtCommunity.addTaskGenInfo(parameters.CODE_TASK_TYPE_VA, 1, 5)
     gtCommunity.addTaskGenInfo(parameters.CODE_TASK_TYPE_VR, 2, 8)
     gtCommunity.expandBandwidthList(10)
     gtCommunity.expandBandwidthList(6)
@@ -277,7 +281,7 @@ def createATreeGraph():
 
     gtCompany = group_type.GroupType(defaultServerNum=3, typeName=parameters.CODE_GROUP_TYPE_COMPANY)
     gtCompany.addTaskGenInfo(parameters.CODE_TASK_TYPE_IoT, 4,5)
-    gtCompany.addTaskGenInfo(parameters.CODE_TASK_TYPE_VA, 10, 5)
+    gtCompany.addTaskGenInfo(parameters.CODE_TASK_TYPE_VA, 1, 5)
     gtCompany.addTaskGenInfo(parameters.CODE_TASK_TYPE_VR, 2, 8)
     gtCompany.expandBandwidthList(10)
     gtCompany.expandBandwidthList(15)
@@ -288,7 +292,7 @@ def createATreeGraph():
     gtCompany.expandLengthList(3)
     gtCompany.expandLengthList(20)
     gtCompany.expandComCapacityList(5)
-    gtCompany.expandComCapacityList(1)
+    gtCompany.expandComCapacityList(2)
     gtCompany.expandComCapacityList(2)
 
     tng.addGroupType(gtBusiness)
@@ -296,9 +300,9 @@ def createATreeGraph():
     tng.addGroupType(gtCompany)
 
     rootSwitch = tng.getRootSwitch()
-    tng.genGroup(rootSwitch, 20, 40, parameters.CODE_GROUP_TYPE_BUSINESS)
-    tng.genGroup(rootSwitch, 25, 30, parameters.CODE_GROUP_TYPE_COMMMUNITY)
-    tng.genGroup(rootSwitch, 15, 40, parameters.CODE_GROUP_TYPE_COMPANY)
+    tng.genGroup(rootSwitch, 40, 40, parameters.CODE_GROUP_TYPE_BUSINESS)
+    tng.genGroup(rootSwitch, 30, 30, parameters.CODE_GROUP_TYPE_COMMMUNITY)
+    # tng.genGroup(rootSwitch, 35, 35, parameters.CODE_GROUP_TYPE_COMPANY)
     tng._floydShortestPath()
     
     return tng

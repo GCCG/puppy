@@ -28,6 +28,9 @@ class Group:
     
     def getTaskGenInfoDict(self):
         return dict(self._taskGenInfoDict)
+    
+    def getTaskGenInfo(self, taskTypeName):
+        return self._taskGenInfoDict[taskTypeName]
 
     def addTaskGenInfo(self, taskTypeName, mean, variance):
         if mean <0 or variance <0:
