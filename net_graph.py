@@ -1,5 +1,6 @@
 # Class NetGraph
 import sys
+import numpy as np
 from . import net_ap
 from . import net_link
 from . import net_path
@@ -18,7 +19,7 @@ class NetGraph:
         self._pathMatrix = []
 
     # ID generation methods
-    # Because we don't need to delete sth at the current stage,
+    # Because we don't need to delete sth at the current bound,
     # so we can generate serverID incrementally.
     def _generateServerID(self):
         return self._serverNum + 1
@@ -214,6 +215,24 @@ class TreeNetGraph(NetGraph):
         tmp = list(self._groupTypeDict.keys())
         print("In TreeNetGraph, group types are:",tmp)
         return tmp
+
+    def print_info(self):
+        print("-----Tree net graph information:")
+        print("Servers:")
+        s_list = self.getServerList()
+        for i in range(len(s_list)):
+            print("%s, resource amount is %f, load mean is %f" % (s_list[i].getKey(), s_list[i].getRscAmount(), s_list[i].getGroup().getTaskGenInfo(parameters.CODE_TASK_TYPE_VA)[0]))
+        print("Links:")
+        l_list = self.getLinkList()
+        for j in range(len(l_list)):
+            print("%s, from  %s to %s, bandwidth %f, length %f." % (l_list[j].getKey(), l_list[j].getHeadAP().getKey(),\
+                l_list[j].getTailAP().getKey(), l_list[j].getBandwidth(), l_list[j].getLinkLength()))
+        # print("Pathes for servers:")
+        print("--------------------------------\n")
+
+    # def check_load(self):
+    #     # First check if computation rsc is enough
+
             
 def createANetGraph():
     ng = NetGraph()
@@ -245,6 +264,7 @@ def createANetGraph():
 def createATreeGraph():
 
     # Control system model here.
+    np.random.seed(1)
 
     tng = TreeNetGraph()
     gtBusiness = group_type.GroupType(defaultServerNum=3, typeName=parameters.CODE_GROUP_TYPE_BUSINESS)
@@ -302,8 +322,11 @@ def createATreeGraph():
     rootSwitch = tng.getRootSwitch()
     tng.genGroup(rootSwitch, 40, 40, parameters.CODE_GROUP_TYPE_BUSINESS)
     tng.genGroup(rootSwitch, 30, 30, parameters.CODE_GROUP_TYPE_COMMMUNITY)
-    # tng.genGroup(rootSwitch, 35, 35, parameters.CODE_GROUP_TYPE_COMPANY)
+    tng.genGroup(rootSwitch, 35, 35, parameters.CODE_GROUP_TYPE_COMPANY)
     tng._floydShortestPath()
+
+    print()
+
     
     return tng
 
