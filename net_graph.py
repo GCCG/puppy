@@ -267,7 +267,7 @@ def createATreeGraph():
     np.random.seed(1)
 
     tng = TreeNetGraph()
-    gtBusiness = group_type.GroupType(defaultServerNum=3, typeName=parameters.CODE_GROUP_TYPE_BUSINESS)
+    gtBusiness = group_type.GroupType(defaultServerNum=2, typeName=parameters.CODE_GROUP_TYPE_BUSINESS)
     gtBusiness.addTaskGenInfo(parameters.CODE_TASK_TYPE_IoT, 4,5)
     gtBusiness.addTaskGenInfo(parameters.CODE_TASK_TYPE_VA, 1, 5)
     gtBusiness.addTaskGenInfo(parameters.CODE_TASK_TYPE_VR, 2, 8)
@@ -283,7 +283,7 @@ def createATreeGraph():
     gtBusiness.expandComCapacityList(8)
     gtBusiness.expandComCapacityList(2)
 
-    gtCommunity = group_type.GroupType(defaultServerNum=3, typeName=parameters.CODE_GROUP_TYPE_COMMMUNITY)
+    gtCommunity = group_type.GroupType(defaultServerNum=2, typeName=parameters.CODE_GROUP_TYPE_COMMMUNITY)
     gtCommunity.addTaskGenInfo(parameters.CODE_TASK_TYPE_IoT, 4,5)
     gtCommunity.addTaskGenInfo(parameters.CODE_TASK_TYPE_VA, 1, 5)
     gtCommunity.addTaskGenInfo(parameters.CODE_TASK_TYPE_VR, 2, 8)
@@ -299,7 +299,7 @@ def createATreeGraph():
     gtCommunity.expandComCapacityList(1)
     gtCommunity.expandComCapacityList(2)
 
-    gtCompany = group_type.GroupType(defaultServerNum=3, typeName=parameters.CODE_GROUP_TYPE_COMPANY)
+    gtCompany = group_type.GroupType(defaultServerNum=2, typeName=parameters.CODE_GROUP_TYPE_COMPANY)
     gtCompany.addTaskGenInfo(parameters.CODE_TASK_TYPE_IoT, 4,5)
     gtCompany.addTaskGenInfo(parameters.CODE_TASK_TYPE_VA, 1, 5)
     gtCompany.addTaskGenInfo(parameters.CODE_TASK_TYPE_VR, 2, 8)
@@ -322,7 +322,7 @@ def createATreeGraph():
     rootSwitch = tng.getRootSwitch()
     tng.genGroup(rootSwitch, 40, 40, parameters.CODE_GROUP_TYPE_BUSINESS)
     tng.genGroup(rootSwitch, 30, 30, parameters.CODE_GROUP_TYPE_COMMMUNITY)
-    tng.genGroup(rootSwitch, 35, 35, parameters.CODE_GROUP_TYPE_COMPANY)
+    # tng.genGroup(rootSwitch, 35, 35, parameters.CODE_GROUP_TYPE_COMPANY)
     tng._floydShortestPath()
 
     print()

@@ -71,27 +71,34 @@ if __name__ == "__main__":
     # #设置初始猜测值  
     # x0 = np.asarray((0.5,0.5,0.5))
     np.set_printoptions(formatter={'float':'{:.3f}'.format})
+    np.random.seed(9)
 
     ng = createATreeGraph()
     args = gen_args(ng)
 
 
-    cons = []
-    cons = constraints_for_links(ng)
-    cons = constraints_for_offloading(ng) + cons
-    cons = constraints_for_path_ban(ng) + cons
-    cons = constraints_for_receiver(ng) + cons
-    cons = constraints_for_sender(ng) + cons
+    # cons = []
+    # cons = constraints_for_links(ng)
+    # cons = constraints_for_offloading(ng) + cons
+    # cons = constraints_for_path_ban(ng) + cons
+    # cons = constraints_for_receiver(ng) + cons
+    # cons = constraints_for_sender(ng) + cons
+
+    cons = gen_constraints(ng)
+    # cons =  gen_intact_constraints(ng)
     s_len = len(ng.getServerList())
     # x0 = np.ones(2*s_len**2)*0.5
-    
+
+    resutl_for_slsqp = []
+    def callback(xk):
+        resutl_for_slsqp.append(xk)
 
     # def callbackK(xk):
     #     print(xk)
-    iteration = 100
+    iteration = 20
     success = 0
     for i in range(iteration):
-        x0 = gen_feasible_solution_exterior(cons, args).x
+        x0 = gen_feasible_solution_exterior(cons, args, cons_mode=0).x
         # x0 = np.random.rand(2*s_len**2)
         res = minimize(gen_objective(args), x0, method='SLSQP',constraints=cons)
         print("Result: %s,message: %s" %(res.success, res.message))
@@ -100,6 +107,7 @@ if __name__ == "__main__":
             print(res)
             # check_constraints(cons, res.x)
             A, B = reshape_x(res.x, s_len)
+            check_constraints(cons, res.x)
             print("offloading decisions:")
             print(A)
             print("bandwidth:")
