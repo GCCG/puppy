@@ -8,11 +8,14 @@ from . import net_ap
 
 
 class TaskType:
-    def __init__(self, defaultDataSize, defaultComputeSize, defaultTimeLimit, typeName):
+    def __init__(self, defaultDataSize, defaultComputeSize, defaultTimeLimit, typeName, data_size_variance, com_size_variance):
         self._defaultDataSize = defaultDataSize
         self._defaultComputeSize = defaultComputeSize
         self._typeName = typeName
         self._defaultTimeLimit = defaultTimeLimit
+
+        self._data_size_variance = data_size_variance
+        self._com_size_variance = com_size_variance
 
     
     def createTask(self, accessPoint, birthTime, timeLimit=None):

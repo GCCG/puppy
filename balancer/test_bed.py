@@ -61,6 +61,15 @@ from scipy.optimize import minimize
 
 def tet_partial_iterative_funcion():
     pass
+
+def test_random():
+    def obj(x):
+        index = np.random.randint(0, len(x))
+        return x[index]
+    x0 = np.random.rand(10)
+
+    res = res = minimize(obj, x0, method='SLSQP',constraints=[])
+    print(res)
  
 if __name__ == "__main__":
     # #定义常量值
@@ -70,13 +79,14 @@ if __name__ == "__main__":
     # cons = con(args1)
     # #设置初始猜测值  
     # x0 = np.asarray((0.5,0.5,0.5))
-    np.set_printoptions(formatter={'float':'{:.3f}'.format})
+    """ np.set_printoptions(formatter={'float':'{:.3f}'.format})
     np.random.seed(9)
 
     ng = createATreeGraph()
     args = gen_args(ng)
+    ng.print_info()
 
-
+    # test_random()
     # cons = []
     # cons = constraints_for_links(ng)
     # cons = constraints_for_offloading(ng) + cons
@@ -105,14 +115,15 @@ if __name__ == "__main__":
         if res.success == True:
             success = success + 1
             print(res)
-            # check_constraints(cons, res.x)
-            A, B = reshape_x(res.x, s_len)
             check_constraints(cons, res.x)
-            print("offloading decisions:")
-            print(A)
-            print("bandwidth:")
-            print(B)
-    print("Iteration %d times, %d succeed, ratio %F" %(iteration, success, success/iteration))
+            # A, B = reshape_x(res.x, s_len)
+            # check_constraints(cons, res.x)
+            # print("offloading decisions:")
+            # print(A)
+            # print("bandwidth:")
+            # print(B)
+            print_result(res.x, s_len)
+    print("Iteration %d times, %d succeed, ratio %F" %(iteration, success, success/iteration)) """
     
     # check_constraints(cons, res.x)
     # A, B = reshape_x(res.x, s_len)
@@ -120,6 +131,66 @@ if __name__ == "__main__":
     # print(A)
     # print("bandwidth:")
     # print(B)
+
+    c = np.array([8, 4])
+    sigma = 1
+    beta = 1
+    alpha = (sigma**2 + beta**2)/(2*beta**2)
+    task_amount = 6
+
+    mu = c/beta
+    def f(lam, mu):
+        return (1/mu + (sigma**2 + beta**2)*lam / ((2*mu*beta**2)*(mu-lam)))*lam
+    
+    def H(omega):
+        return alpha*(2*omega-1)/((omega - 1)**2) + 1
+    def om(o):
+        return 1/o + alpha/(o*(o-1))
+    
+    def obj(x):
+        return f(x[0], mu[0]) + f(x[1], mu[1])
+
+    def upper1(omega):
+        return 2*(1/omega + alpha/(omega*(omega-1)))
+    def upper2(omega_t):
+        if omega_t <= 1:
+            return 100
+        else:
+            return 1/omega_t + alpha/(omega_t*(omega_t-1))
+    
+    cons = []
+    con1 = {}
+    con1['fun'] = lambda x: x[0] + x[1] - task_amount
+    con1['type'] = 'eq'
+    con2 = {}
+    con2['fun'] = lambda x: x[0]
+    con2['type'] = 'ineq'
+    con3 = {}
+    con3['fun'] = lambda x: x[1]
+    con3['type'] = 'ineq'
+    cons.append(con1)
+    cons.append(con2)
+    cons.append(con3)
+
+    res = minimize(obj, [3,3], method='SLSQP', constraints=cons)
+    print(res)
+    omega = mu/res.x
+    print("omega:\n",omega)
+    print("x1/x2:",c[0]/c[1])
+    print("H(o1)/H(o2):",H(omega[0])/H(omega[1]))
+    print("f(x1):\n",f(res.x[0],mu[0]))
+    print("f(x2):\n",f(res.x[1],mu[1]))
+    print("f(x1)/f(x2)",f(res.x[0],mu[0])/f(res.x[1],mu[1]))
+    print("om(o1)+om(o2)",om(omega[0])+om(omega[1]))
+    print("upperbound1:",upper1(np.sum(mu)/task_amount))
+    print("upperbound2:",upper2(np.max(mu)/task_amount))
+    x= res.x
+    print("f0/x0",f(x[0],mu[0])/x[0])
+    print("f1/x1",f(x[1],mu[1])/x[1])
+    print("f0",f(x[0],mu[0]))
+    print("f1",f(x[1],mu[1]))
+
+
 
 
 

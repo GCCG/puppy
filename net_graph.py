@@ -230,6 +230,49 @@ class TreeNetGraph(NetGraph):
         # print("Pathes for servers:")
         print("--------------------------------\n")
 
+    def getLinksInGroup(self, group):
+        s_list = group.getServerList()
+        l_list = self.getLinkList()
+
+        tmp_list = []
+        for l in l_list:
+            for s in s_list:
+                if l.getHeadAP().getKey() ==  s.getKey() or l.getTailAP().getKey() == s.getKey():
+                    tmp_list.append(l)
+        return tmp_list
+
+    def getServersInGroup(self, group):
+        for g in self._groupList:
+            # print(g.getKey(), group.getKey())
+            if g.getKey() == group.getKey():
+                return group.getServerList()
+        print("No such group in this graph.")
+        sys.exit()
+
+    def getSwitchInGroup(self, group):
+        for s in self._APList:
+            try:
+                # print(s.getGroup().getKey())
+                # print(group.getKey())
+                if s.isServer() != True and s.getGroup().getKey() == group.getKey():
+                    return s
+            except:
+                continue
+        print("%s has no switch" % group.getKey())
+    
+    def get_backhaul_links(self):
+        l_list = self.getLinkList()
+        tmp = []
+        for l in l_list:
+            if l.getHeadAP().isServer() or l.getTailAP().isServer():
+                continue
+            else:
+                tmp.append(l)
+        for l in tmp:
+            print("%s, from %s, to %s" % (l.getKey(), l.getHeadAP().getKey(), l.getTailAP().getKey()))
+        return tmp
+
+
     # def check_load(self):
     #     # First check if computation rsc is enough
 
@@ -267,14 +310,14 @@ def createATreeGraph():
     np.random.seed(1)
 
     tng = TreeNetGraph()
-    gtBusiness = group_type.GroupType(defaultServerNum=2, typeName=parameters.CODE_GROUP_TYPE_BUSINESS)
-    gtBusiness.addTaskGenInfo(parameters.CODE_TASK_TYPE_IoT, 4,5)
-    gtBusiness.addTaskGenInfo(parameters.CODE_TASK_TYPE_VA, 1, 5)
+    gtBusiness = group_type.GroupType(defaultServerNum=4, typeName=parameters.CODE_GROUP_TYPE_BUSINESS)
+    gtBusiness.addTaskGenInfo(parameters.CODE_TASK_TYPE_IoT, 2,5)
+    gtBusiness.addTaskGenInfo(parameters.CODE_TASK_TYPE_VA, 2, 5)
     gtBusiness.addTaskGenInfo(parameters.CODE_TASK_TYPE_VR, 2, 8)
-    gtBusiness.expandBandwidthList(10)
     gtBusiness.expandBandwidthList(15)
-    gtBusiness.expandBandwidthList(5)
-    gtBusiness.expandBandwidthList(20)
+    gtBusiness.expandBandwidthList(15)
+    gtBusiness.expandBandwidthList(15)
+    gtBusiness.expandBandwidthList(15)
     gtBusiness.expandLengthList(12)
     gtBusiness.expandLengthList(15)
     gtBusiness.expandLengthList(3)
@@ -283,14 +326,14 @@ def createATreeGraph():
     gtBusiness.expandComCapacityList(8)
     gtBusiness.expandComCapacityList(2)
 
-    gtCommunity = group_type.GroupType(defaultServerNum=2, typeName=parameters.CODE_GROUP_TYPE_COMMMUNITY)
-    gtCommunity.addTaskGenInfo(parameters.CODE_TASK_TYPE_IoT, 4,5)
-    gtCommunity.addTaskGenInfo(parameters.CODE_TASK_TYPE_VA, 1, 5)
+    gtCommunity = group_type.GroupType(defaultServerNum=4, typeName=parameters.CODE_GROUP_TYPE_COMMMUNITY)
+    gtCommunity.addTaskGenInfo(parameters.CODE_TASK_TYPE_IoT, 2,5)
+    gtCommunity.addTaskGenInfo(parameters.CODE_TASK_TYPE_VA, 2, 5)
     gtCommunity.addTaskGenInfo(parameters.CODE_TASK_TYPE_VR, 2, 8)
-    gtCommunity.expandBandwidthList(10)
-    gtCommunity.expandBandwidthList(6)
-    gtCommunity.expandBandwidthList(4)
-    gtCommunity.expandBandwidthList(8)
+    gtCommunity.expandBandwidthList(15)
+    gtCommunity.expandBandwidthList(15)
+    gtCommunity.expandBandwidthList(15)
+    gtCommunity.expandBandwidthList(15)
     gtCommunity.expandLengthList(5)
     gtCommunity.expandLengthList(10)
     gtCommunity.expandLengthList(12)
@@ -299,14 +342,14 @@ def createATreeGraph():
     gtCommunity.expandComCapacityList(1)
     gtCommunity.expandComCapacityList(2)
 
-    gtCompany = group_type.GroupType(defaultServerNum=2, typeName=parameters.CODE_GROUP_TYPE_COMPANY)
+    gtCompany = group_type.GroupType(defaultServerNum=4, typeName=parameters.CODE_GROUP_TYPE_COMPANY)
     gtCompany.addTaskGenInfo(parameters.CODE_TASK_TYPE_IoT, 4,5)
-    gtCompany.addTaskGenInfo(parameters.CODE_TASK_TYPE_VA, 1, 5)
+    gtCompany.addTaskGenInfo(parameters.CODE_TASK_TYPE_VA, 2, 5)
     gtCompany.addTaskGenInfo(parameters.CODE_TASK_TYPE_VR, 2, 8)
-    gtCompany.expandBandwidthList(10)
     gtCompany.expandBandwidthList(15)
-    gtCompany.expandBandwidthList(5)
-    gtCompany.expandBandwidthList(20)
+    gtCompany.expandBandwidthList(15)
+    gtCompany.expandBandwidthList(15)
+    gtCompany.expandBandwidthList(25)
     gtCompany.expandLengthList(12)
     gtCompany.expandLengthList(15)
     gtCompany.expandLengthList(3)
@@ -320,9 +363,10 @@ def createATreeGraph():
     tng.addGroupType(gtCompany)
 
     rootSwitch = tng.getRootSwitch()
-    tng.genGroup(rootSwitch, 40, 40, parameters.CODE_GROUP_TYPE_BUSINESS)
-    tng.genGroup(rootSwitch, 30, 30, parameters.CODE_GROUP_TYPE_COMMMUNITY)
-    # tng.genGroup(rootSwitch, 35, 35, parameters.CODE_GROUP_TYPE_COMPANY)
+    tng.genGroup(rootSwitch, 20, 20, parameters.CODE_GROUP_TYPE_BUSINESS)
+    tng.genGroup(rootSwitch, 20, 20, parameters.CODE_GROUP_TYPE_COMMMUNITY)
+    tng.genGroup(rootSwitch, 35, 35, parameters.CODE_GROUP_TYPE_COMPANY)
+    tng.genGroup(rootSwitch, 20, 20, parameters.CODE_GROUP_TYPE_BUSINESS)
     tng._floydShortestPath()
 
     print()

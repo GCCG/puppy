@@ -247,7 +247,6 @@ def solve_multi(tng):
             print_result(res.x, m, z)
     print("Iterate %d times, succeed %d times, ratio %f" % (iteration, success, success/iteration))
 
-
 # Generating feasible solution
 def gen_m_feasible_solution(cons, tng, true_initial=False,mode=0):
     penalty_func = gen_penalty_func(cons, mode=mode)

@@ -10,9 +10,9 @@ import json
 # from brokenaxes import brokenaxes
 
 # Control task model here
-VA_COM_MEAN = 1
+VA_COM_MEAN = 0.5
 VA_COM_VAR = 1
-VA_DATA_MEAN = 0.1
+VA_DATA_MEAN = 2
 VA_DATA_VAR = 1
 ADJUST = 0.0001
 
@@ -563,7 +563,7 @@ def gen_constraints(ng):
         tmp = {}
         tmp['type'] = 'ineq'
         tmp['fun'] = lambda x, k=k: bandwidth[k] - np.dot(x[s_len**2:2*s_len**2], C[k,:]) - ADJUST # Adjust ban a little lower to avoid exceeding link bandwidth.
-        tmp['info'] = 'link'
+        tmp['info'] = "remaining bandwidth of %s" % l_list[k].getKey()
         constraints.append(tmp)
 
     # Constraint for sender's load
@@ -571,7 +571,7 @@ def gen_constraints(ng):
         tmp = {}
         tmp['type'] = 'eq'
         tmp['fun'] = lambda x, i=i: np.sum(x[i*s_len:(i+1)*s_len]) - alpha[i] - ADJUST
-        tmp['info'] = 'sender'
+        tmp['info'] = "remaning load of %s" % s_list[i].getKey()
         constraints.append(tmp)
     
     # Constraint for receiver's load
@@ -583,7 +583,7 @@ def gen_constraints(ng):
         tmp = {}
         tmp['type'] = 'ineq'
         tmp['fun'] = lambda x, j=j: mu[j] - np.dot(x, H[j,:]) - ADJUST # Adjust load a little lower to avoid exceeding server rsc
-        tmp['info'] = 'receiver'
+        tmp['info'] = "remaining rsc of %s" % s_list[j].getKey()
         constraints.append(tmp)
 
     # Constraint for bandwidth of path
@@ -592,7 +592,7 @@ def gen_constraints(ng):
             tmp = {}
             tmp['type'] = 'ineq'
             tmp['fun'] = lambda x, i=i, j=j: x[s_len**2+i*s_len+j] - x[i*s_len+j]*VA_DATA_MEAN - ADJUST # Adjust ban a little higher to avoid zero bandwidth.
-            tmp['info'] = 'path'
+            tmp['info'] = "surplus bandwidth of path from %s to %s" % (s_list[i].getKey(), s_list[j].getKey())
             constraints.append(tmp)
 
     # Constraint for offloading decision
@@ -601,7 +601,7 @@ def gen_constraints(ng):
             tmp = {}
             tmp['type'] = 'ineq'
             tmp['fun'] = lambda x, i=i, j=j: x[i*s_len+j]# - ADJUST/100
-            tmp['info'] = 'offloading'
+            tmp['info'] = "offloading from %s to %s" % (s_list[i].getKey(), s_list[j].getKey())
             constraints.append(tmp)
 
     return constraints
@@ -827,7 +827,7 @@ def test_normal_iteration(tng, max_iteration, repeat=5):
         x0 = gen_feasible_solution_exterior(constraints1, args, cons_mode=0, true_initial=True).x
         # x0 = np.random.rand(2*s_len**2)
         res = minimize(gen_objective(args), x0, method='SLSQP',constraints=constraints1, callback=callback)
-        if res.success ==True and res.fun >=0:
+        if res.success ==True and res.fun >=0 and res.fun < 1:
             flag = 0
             for result in result_for_slsqp:
                 if f(result) < 0 or f(result) >1000:
@@ -836,23 +836,29 @@ def test_normal_iteration(tng, max_iteration, repeat=5):
                 continue
             success = success + 1
 
-            A, B = reshape_x(res.x, len(s_list))
-            print("offloading decisions:")
-            print(A)
-            print("bandwidth:")
-            print(B)
-            for i in range(len(result_for_slsqp)):
-                if i >= len(objective_for_slsqp):
-                    break
-                objective_for_slsqp[i] = f(result_for_slsqp[i]) + objective_for_slsqp[i]
+            # A, B = reshape_x(res.x, len(s_list))
+            # print("offloading decisions:")
+            # print(A)
+            # print("bandwidth:")
+            # print(B)
+            print_result(res.x, len(s_list))
+            # for i in range(len(result_for_slsqp)):
+            #     if i >= len(objective_for_slsqp):
+            #         break
+            #     objective_for_slsqp[i] = f(result_for_slsqp[i]) + objective_for_slsqp[i]
+            for i in range(len(objective_for_slsqp)):
+                if i >= len(result_for_slsqp):
+                    objective_for_slsqp[i] = objective_for_slsqp[i] + f(res.x)
+                else:
+                    objective_for_slsqp[i] = f(result_for_slsqp[i]) + objective_for_slsqp[i]
                 
     objective_for_slsqp = objective_for_slsqp/success
-    min_obj = 0 
-    for i in range(len(objective_for_slsqp)):
-        if objective_for_slsqp[i] > 0:
-            min_obj = objective_for_slsqp[i]
-        if objective_for_slsqp[i] == 0:
-            objective_for_slsqp[i] = min_obj
+    # min_obj = 0 
+    # for i in range(len(objective_for_slsqp)):
+    #     if objective_for_slsqp[i] > 0:
+    #         min_obj = objective_for_slsqp[i]
+    #     if objective_for_slsqp[i] == 0:
+    #         objective_for_slsqp[i] = min_obj
     # p.savetxt('./puppy/results/normal.txt', obj_for_normal, fmt = '%f')
     return objective_for_slsqp
 
@@ -1033,7 +1039,7 @@ def test_penalty_optimization(tng, max_iteration, repeat=5):
             print("penalty_func(x):",penalty_func(res.x))
             print("obj(x):",obj(res.x))
             
-            if penalty_func(res.x) < 0.1 and obj(res.x) < 1 and obj(res.x) > 0:
+            if penalty_func(res.x) < 0.1 and obj(res.x) < 1 and obj(res.x) > 0 and res.success == True:
                 flag = 0
                 # for e in result_for_po:
                 #     if abs(obj(e)) > repeat*2:
@@ -1047,8 +1053,12 @@ def test_penalty_optimization(tng, max_iteration, repeat=5):
                 check_constraints(cons, res.x)
             
                 print_result(res.x, s_len=len(s_list))
-                for i in range(min(len(result_for_po), max_iteration)):
-                    obj_for_po[i] = obj(result_for_po[i]) + obj_for_po[i]
+                fun = obj(res.x)
+                for i in range(max_iteration):
+                    if i < len(result_for_po):
+                        obj_for_po[i] = obj(result_for_po[i]) + obj_for_po[i]
+                    else:
+                        obj_for_po[i] = fun + obj_for_po[i]
                 # continue
         ite = ite +1
 
@@ -1056,8 +1066,6 @@ def test_penalty_optimization(tng, max_iteration, repeat=5):
     print("Result is:")
     print(obj_for_po)
     return obj_for_po
-
-
 
 
 
@@ -1104,11 +1112,11 @@ def gen_problem_for_R_language(tng):
 def compare_partial_and_normal(tng, seed=1):
     np.random.seed(seed)
     max_iteration = 200
-    repeat = 200
-    obj_for_partial = test_partial_iteration(tng, repeat=repeat, max_iteration=max_iteration)
+    repeat = 20
+    # obj_for_partial = test_partial_iteration(tng, repeat=repeat, max_iteration=max_iteration)
     obj_for_normal = test_normal_iteration(tng, max_iteration=max_iteration, repeat=repeat)
     # obj_for_penalty = test_penalty_optimization(tng, max_iteration=max_iteration,repeat=repeat)
-    np.savetxt('./puppy/results/partial.txt', obj_for_partial, fmt = '%f')
+    # np.savetxt('./puppy/results/partial.txt', obj_for_partial, fmt = '%f')
     np.savetxt('./puppy/results/normal.txt', obj_for_normal, fmt = '%f')
     # np.savetxt('./puppy/results/penalty.txt', obj_for_penalty, fmt = '%f')
 
@@ -1156,10 +1164,11 @@ if __name__ == "__main__":
     s_list = tng.getServerList() 
     l_list = tng.getLinkList()
 
-    # obj_for_penalty  = test_penalty_optimization(tng, 200, repeat=200)
+    test_normal_iteration(tng, 100, 5)
+    # obj_for_penalty  = test_penalty_optimization(tng, 200, repeat=20)
     # np.savetxt('./puppy/results/penalty.txt', obj_for_penalty, fmt = '%f')
     # compare_partial_and_normal(tng)
-    draw_compare_partial_normal()
+    # draw_compare_partial_normal()
     # test_constraints(tng)
     # test_objective_function(tng)
     # print(test_partial_iteration(tng, 80))

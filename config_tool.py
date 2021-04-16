@@ -6,7 +6,10 @@ from .net_graph import NetGraph
 class ModelManager:
     def __init__(self):
         self._tree_net_graph = None
+
+        # 使用域类型的信息，来创建一个域
         self._task_types = []
+        self._group_types = []
         self._seed = 0
         self._group_num = 0
         self._group_load_mean = 0
@@ -16,14 +19,14 @@ class ModelManager:
 
 
         pass
-    
-    def add_group_type(self, ):
-        pass
-
+        
     def add_group_type(self, type_name, backhaul_ban, ban_ratio, default_server_num, rsc_mean, rsc_sigma):
         pass
 
     def set_group_list(self):
+        pass
+
+    def add_task_type(self, type_name, data_size_mean, data_size_variance, com_size_mean, com_size_variance):
         pass
 
 
@@ -46,7 +49,10 @@ class ModelManager:
         group_type_list = []
         tng = NetGraph()
         for g in group_list:
-            tng.add
+            pass
+
+    def get_tree_net(self,):
+        pass
             
 
 

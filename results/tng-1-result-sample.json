@@ -1,0 +1,978 @@
+{
+    "alpha": 32,
+    "children": [
+        {
+            "alpha": 16,
+            "children": [
+                {
+                    "alpha": 8,
+                    "children": [
+                        {
+                            "alpha": 4,
+                            "children": [
+                                {
+                                    "alpha": 2,
+                                    "children": [],
+                                    "constraints": [],
+                                    "inlink_ban": 15,
+                                    "input_ban": 14.01324425419472,
+                                    "input_load": 0.6353116614626254,
+                                    "lambda": 2.0229838968640066,
+                                    "name": "tng-0-0-0-0-0",
+                                    "outlink_ban": 15,
+                                    "output_ban": 8.00990658945659,
+                                    "output_load": 0.6123277645986186,
+                                    "rsc": 8,
+                                    "solution": null,
+                                    "total_ban": 0,
+                                    "type": "server"
+                                },
+                                {
+                                    "alpha": 2,
+                                    "children": [],
+                                    "constraints": [],
+                                    "inlink_ban": 15,
+                                    "input_ban": 5.320643886653918,
+                                    "input_load": 0.18161712291474472,
+                                    "lambda": 2.023153035421094,
+                                    "name": "tng-0-0-0-0-1",
+                                    "outlink_ban": 15,
+                                    "output_ban": 2.4319911378461043,
+                                    "output_load": 0.15846408749365082,
+                                    "rsc": 4,
+                                    "solution": null,
+                                    "total_ban": 0,
+                                    "type": "server"
+                                }
+                            ],
+                            "constraints": [],
+                            "inlink_ban": 30,
+                            "input_ban": 17.04813074345621,
+                            "input_load": 0.8169287843773697,
+                            "lambda": 4.0461369322851,
+                            "name": "tng-0-0-0-0",
+                            "outlink_ban": 30,
+                            "output_ban": 8.156140329910263,
+                            "output_load": 0.770791852092269,
+                            "rsc": 12,
+                            "solution": {
+                                "inner_offloading": [
+                                    [
+                                        1.3876722354013815,
+                                        -8.326672684688674e-17
+                                    ],
+                                    [
+                                        6.061300007915993e-16,
+                                        1.8415359125063493
+                                    ]
+                                ],
+                                "inner_path_ban": [
+                                    [
+                                        46.214425517626786,
+                                        1.5305553062144979
+                                    ],
+                                    [
+                                        0.755202091177934,
+                                        4.000058475335965
+                                    ]
+                                ],
+                                "input_decisions": [
+                                    0.6353116614626249,
+                                    0.1816171229147448
+                                ],
+                                "output_decisions": [
+                                    0.6123277645986187,
+                                    0.1584640874936502
+                                ]
+                            },
+                            "total_ban": 60,
+                            "type": "dummy"
+                        },
+                        {
+                            "alpha": 4,
+                            "children": [
+                                {
+                                    "alpha": 2,
+                                    "children": [],
+                                    "constraints": [],
+                                    "inlink_ban": 15,
+                                    "input_ban": 9.078506222936678,
+                                    "input_load": 7.112406561613173e-15,
+                                    "lambda": 1.9999999999999978,
+                                    "name": "tng-0-0-0-1-0",
+                                    "outlink_ban": 15,
+                                    "output_ban": 7.282429441444216,
+                                    "output_load": 9.45907211941025e-15,
+                                    "rsc": 8,
+                                    "solution": null,
+                                    "total_ban": 0,
+                                    "type": "server"
+                                },
+                                {
+                                    "alpha": 2,
+                                    "children": [],
+                                    "constraints": [],
+                                    "inlink_ban": 15,
+                                    "input_ban": 7.282679930570935,
+                                    "input_load": 7.763468750969374e-07,
+                                    "lambda": 2.0000001080362297,
+                                    "name": "tng-0-0-0-1-1",
+                                    "outlink_ban": 15,
+                                    "output_ban": 9.078512295615425,
+                                    "output_load": 6.683106455340429e-07,
+                                    "rsc": 4,
+                                    "solution": null,
+                                    "total_ban": 0,
+                                    "type": "server"
+                                }
+                            ],
+                            "constraints": [],
+                            "inlink_ban": 30,
+                            "input_ban": 0.0002504891268669111,
+                            "input_load": 7.76346866394319e-07,
+                            "lambda": 4.000000108036227,
+                            "name": "tng-0-0-0-1",
+                            "outlink_ban": 30,
+                            "output_ban": 6.07267889578079e-06,
+                            "output_load": 6.6831063917809e-07,
+                            "rsc": 12,
+                            "solution": {
+                                "inner_offloading": [
+                                    [
+                                        1.9999999999999907,
+                                        9.153686858225858e-15
+                                    ],
+                                    [
+                                        6.661338147750939e-15,
+                                        1.9999993316893545
+                                    ]
+                                ],
+                                "inner_path_ban": [
+                                    [
+                                        79.792743446027,
+                                        7.282429441444213
+                                    ],
+                                    [
+                                        9.078506222936532,
+                                        34.936555916426194
+                                    ]
+                                ],
+                                "input_decisions": [
+                                    4.510684138622341e-16,
+                                    7.763468659432505e-07
+                                ],
+                                "output_decisions": [
+                                    3.053852611843927e-16,
+                                    6.683106388727048e-07
+                                ]
+                            },
+                            "total_ban": 60,
+                            "type": "dummy"
+                        }
+                    ],
+                    "constraints": [],
+                    "inlink_ban": 20,
+                    "input_ban": 17.048147418890473,
+                    "input_load": 0.8169295111394127,
+                    "lambda": 8.046137040321328,
+                    "name": "tng-0-0-0",
+                    "outlink_ban": 20,
+                    "output_ban": 8.155912588896555,
+                    "output_load": 0.7707924708180848,
+                    "rsc": 24,
+                    "solution": {
+                        "inner_offloading": [
+                            [
+                                3.2292081479077313,
+                                -3.0062927698262434e-13
+                            ],
+                            [
+                                4.9585123982415626e-08,
+                                3.9999993316893607
+                            ]
+                        ],
+                        "inner_path_ban": [
+                            [
+                                85.03252978134506,
+                                0.0002342878747745533
+                            ],
+                            [
+                                -4.7418217189417045e-07,
+                                146.9594541572925
+                            ]
+                        ],
+                        "input_decisions": [
+                            0.8169287347922457,
+                            7.76347167023596e-07
+                        ],
+                        "output_decisions": [
+                            0.7707918520925696,
+                            6.187255151956744e-07
+                        ]
+                    },
+                    "total_ban": 120,
+                    "type": "group"
+                },
+                {
+                    "alpha": 8,
+                    "children": [
+                        {
+                            "alpha": 4,
+                            "children": [
+                                {
+                                    "alpha": 2,
+                                    "children": [],
+                                    "constraints": [],
+                                    "inlink_ban": 15,
+                                    "input_ban": 3.188104357532786,
+                                    "input_load": 0.9977361455938946,
+                                    "lambda": 0.998272566665031,
+                                    "name": "tng-0-0-1-0-0",
+                                    "outlink_ban": 15,
+                                    "output_ban": 13.286159944956283,
+                                    "output_load": 1.9994635789288635,
+                                    "rsc": 1,
+                                    "solution": null,
+                                    "total_ban": 0,
+                                    "type": "server"
+                                },
+                                {
+                                    "alpha": 2,
+                                    "children": [],
+                                    "constraints": [],
+                                    "inlink_ban": 15,
+                                    "input_ban": 2.9520076096029344,
+                                    "input_load": 0.9969930569404789,
+                                    "lambda": 0.9981692957178552,
+                                    "name": "tng-0-0-1-0-1",
+                                    "outlink_ban": 15,
+                                    "output_ban": 13.516809130902729,
+                                    "output_load": 1.9988237612226234,
+                                    "rsc": 1,
+                                    "solution": null,
+                                    "total_ban": 0,
+                                    "type": "server"
+                                }
+                            ],
+                            "constraints": [],
+                            "inlink_ban": 30,
+                            "input_ban": 4.020344954555312,
+                            "input_load": 1.9947292025343728,
+                            "lambda": 1.9964418623828868,
+                            "name": "tng-0-0-1-0",
+                            "outlink_ban": 30,
+                            "output_ban": 24.683202063278607,
+                            "output_load": 3.9982873401514865,
+                            "rsc": 2,
+                            "solution": {
+                                "inner_offloading": [
+                                    [
+                                        0.0005364210711364361,
+                                        7.913049555885454e-16
+                                    ],
+                                    [
+                                        -1.249000902703301e-16,
+                                        0.001176238777376321
+                                    ]
+                                ],
+                                "inner_path_ban": [
+                                    [
+                                        489.2424806782007,
+                                        0.9425839740013202
+                                    ],
+                                    [
+                                        1.1771830385790882,
+                                        7.186532037774546
+                                    ]
+                                ],
+                                "input_decisions": [
+                                    0.9977361455938947,
+                                    0.9969930569404781
+                                ],
+                                "output_decisions": [
+                                    1.9994635789288626,
+                                    1.9988237612226236
+                                ]
+                            },
+                            "total_ban": 60,
+                            "type": "dummy"
+                        },
+                        {
+                            "alpha": 4,
+                            "children": [
+                                {
+                                    "alpha": 2,
+                                    "children": [],
+                                    "constraints": [],
+                                    "inlink_ban": 15,
+                                    "input_ban": 6.358437664184187,
+                                    "input_load": 1.347999640362252,
+                                    "lambda": 1.9999999999999998,
+                                    "name": "tng-0-0-1-1-0",
+                                    "outlink_ban": 15,
+                                    "output_ban": 4.198670645678341,
+                                    "output_load": 1.3479996403622523,
+                                    "rsc": 2,
+                                    "solution": null,
+                                    "total_ban": 0,
+                                    "type": "server"
+                                },
+                                {
+                                    "alpha": 2,
+                                    "children": [],
+                                    "constraints": [],
+                                    "inlink_ban": 15,
+                                    "input_ban": 11.911464291619405,
+                                    "input_load": 2.614294190222167,
+                                    "lambda": 3.95742109731862,
+                                    "name": "tng-0-0-1-1-1",
+                                    "outlink_ban": 15,
+                                    "output_ban": 2.300609031395873,
+                                    "output_load": 0.6568730929035472,
+                                    "rsc": 5,
+                                    "solution": null,
+                                    "total_ban": 0,
+                                    "type": "server"
+                                }
+                            ],
+                            "constraints": [],
+                            "inlink_ban": 30,
+                            "input_ban": 16.017870099258328,
+                            "input_load": 3.962293830584419,
+                            "lambda": 5.957421097318619,
+                            "name": "tng-0-0-1-1",
+                            "outlink_ban": 30,
+                            "output_ban": 4.2472478205289494,
+                            "output_load": 2.0048727332657994,
+                            "rsc": 7,
+                            "solution": {
+                                "inner_offloading": [
+                                    [
+                                        0.6520003596377476,
+                                        2.220446049250313e-16
+                                    ],
+                                    [
+                                        1.1139418643620545e-16,
+                                        1.3431269070964529
+                                    ]
+                                ],
+                                "inner_path_ban": [
+                                    [
+                                        2329.3147672869263,
+                                        1.3429838783311272
+                                    ],
+                                    [
+                                        0.9090479782141373,
+                                        1973.056325373985
+                                    ]
+                                ],
+                                "input_decisions": [
+                                    1.3479996403622518,
+                                    2.614294190222167
+                                ],
+                                "output_decisions": [
+                                    1.347999640362252,
+                                    0.6568730929035471
+                                ]
+                            },
+                            "total_ban": 60,
+                            "type": "dummy"
+                        }
+                    ],
+                    "constraints": [],
+                    "inlink_ban": 20,
+                    "input_ban": 8.155912588896555,
+                    "input_load": 0.7707924383336198,
+                    "lambda": 7.953862959701507,
+                    "name": "tng-0-0-1",
+                    "outlink_ban": 20,
+                    "output_ban": 17.048147418890473,
+                    "output_load": 0.8169294786321136,
+                    "rsc": 9,
+                    "solution": {
+                        "inner_offloading": [
+                            [
+                                0.0017126598485139866,
+                                3.192981063800547
+                            ],
+                            [
+                                1.993249530984625,
+                                1.9951272667342004
+                            ]
+                        ],
+                        "inner_path_ban": [
+                            [
+                                29.774009408000648,
+                                7.877614217952354
+                            ],
+                            [
+                                4.00468824696473,
+                                72.34918308422148
+                            ]
+                        ],
+                        "input_decisions": [
+                            0.0014796715497478955,
+                            0.7693127667838718
+                        ],
+                        "output_decisions": [
+                            0.8053062763509392,
+                            0.0116232022811744
+                        ]
+                    },
+                    "total_ban": 120,
+                    "type": "group"
+                }
+            ],
+            "constraints": [],
+            "inlink_ban": 40,
+            "input_ban": 0.0024027968466514395,
+            "input_load": -4.347742882889766e-13,
+            "lambda": 16.000000000022837,
+            "name": "tng-0-0",
+            "outlink_ban": 40,
+            "output_ban": -1.9079995916548853e-08,
+            "output_load": -2.326899019810003e-11,
+            "rsc": 33,
+            "solution": {
+                "inner_offloading": [
+                    [
+                        7.229207529181916,
+                        0.7707924714020452
+                    ],
+                    [
+                        0.8169294780714221,
+                        7.183070521367887
+                    ]
+                ],
+                "inner_path_ban": [
+                    [
+                        25.481856674529745,
+                        8.155912588896555
+                    ],
+                    [
+                        17.048147418890473,
+                        21.840957883672235
+                    ]
+                ],
+                "input_decisions": [
+                    3.3067990620936447e-08,
+                    -3.3068425393059824e-08
+                ],
+                "output_decisions": [
+                    -5.839604743568529e-10,
+                    5.606915379306281e-10
+                ]
+            },
+            "total_ban": 80,
+            "type": "dummy"
+        },
+        {
+            "alpha": 16,
+            "children": [
+                {
+                    "alpha": 8,
+                    "children": [
+                        {
+                            "alpha": 4,
+                            "children": [
+                                {
+                                    "alpha": 2,
+                                    "children": [],
+                                    "constraints": [],
+                                    "inlink_ban": 15,
+                                    "input_ban": 4.518256768748321,
+                                    "input_load": 0.55751418217828,
+                                    "lambda": 1.8439601310972091,
+                                    "name": "tng-0-1-0-0-0",
+                                    "outlink_ban": 15,
+                                    "output_ban": 4.524141281095645,
+                                    "output_load": 0.713554051081071,
+                                    "rsc": 2,
+                                    "solution": null,
+                                    "total_ban": 0,
+                                    "type": "server"
+                                },
+                                {
+                                    "alpha": 2,
+                                    "children": [],
+                                    "constraints": [],
+                                    "inlink_ban": 15,
+                                    "input_ban": 3.281804958009271,
+                                    "input_load": 0.25936592380470486,
+                                    "lambda": 1.8437778965206137,
+                                    "name": "tng-0-1-0-0-1",
+                                    "outlink_ban": 15,
+                                    "output_ban": 4.288310824235229,
+                                    "output_load": 0.4155880272840912,
+                                    "rsc": 2,
+                                    "solution": null,
+                                    "total_ban": 0,
+                                    "type": "server"
+                                }
+                            ],
+                            "constraints": [],
+                            "inlink_ban": 30,
+                            "input_ban": 1.9163311976905453,
+                            "input_load": 0.8168801059829853,
+                            "lambda": 3.687738027617822,
+                            "name": "tng-0-1-0-0",
+                            "outlink_ban": 30,
+                            "output_ban": 2.9287215762638263,
+                            "output_load": 1.129142078365163,
+                            "rsc": 4,
+                            "solution": {
+                                "inner_offloading": [
+                                    [
+                                        1.2864459489189293,
+                                        -5.2562121322097255e-16
+                                    ],
+                                    [
+                                        -1.5265566588595902e-16,
+                                        1.584411972715909
+                                    ]
+                                ],
+                                "inner_path_ban": [
+                                    [
+                                        2.5728918978378577,
+                                        2.6733545773910676
+                                    ],
+                                    [
+                                        3.2103759516759793,
+                                        3.236624153190475
+                                    ]
+                                ],
+                                "input_decisions": [
+                                    0.5575141821782801,
+                                    0.25936592380470536
+                                ],
+                                "output_decisions": [
+                                    0.7135540510810715,
+                                    0.4155880272840914
+                                ]
+                            },
+                            "total_ban": 60,
+                            "type": "dummy"
+                        },
+                        {
+                            "alpha": 4,
+                            "children": [
+                                {
+                                    "alpha": 2,
+                                    "children": [],
+                                    "constraints": [],
+                                    "inlink_ban": 15,
+                                    "input_ban": 1.9383127004595186,
+                                    "input_load": 0.1419168685277547,
+                                    "lambda": 1.8438647090017461,
+                                    "name": "tng-0-1-0-1-0",
+                                    "outlink_ban": 15,
+                                    "output_ban": 2.0895664981941606,
+                                    "output_load": 0.2980521595260086,
+                                    "rsc": 2,
+                                    "solution": null,
+                                    "total_ban": 0,
+                                    "type": "server"
+                                },
+                                {
+                                    "alpha": 2,
+                                    "children": [],
+                                    "constraints": [],
+                                    "inlink_ban": 15,
+                                    "input_ban": 2.0315622876039363,
+                                    "input_load": 0.33936534250488753,
+                                    "lambda": 1.8438670491828268,
+                                    "name": "tng-0-1-0-1-1",
+                                    "outlink_ban": 15,
+                                    "output_ban": 2.9726580685410804,
+                                    "output_load": 0.4954982933220607,
+                                    "rsc": 2,
+                                    "solution": null,
+                                    "total_ban": 0,
+                                    "type": "server"
+                                }
+                            ],
+                            "constraints": [],
+                            "inlink_ban": 30,
+                            "input_ban": 1.0690080923610823,
+                            "input_load": 0.4812822110326419,
+                            "lambda": 3.687731758184573,
+                            "name": "tng-0-1-0-1",
+                            "outlink_ban": 30,
+                            "output_ban": 2.161357671032868,
+                            "output_load": 0.7935504528480689,
+                            "rsc": 4,
+                            "solution": {
+                                "inner_offloading": [
+                                    [
+                                        1.7019478404739914,
+                                        2.509928029303943e-16
+                                    ],
+                                    [
+                                        3.65376132127615e-17,
+                                        1.5045017066779394
+                                    ]
+                                ],
+                                "inner_path_ban": [
+                                    [
+                                        3.4038956809479832,
+                                        1.2777752389901453
+                                    ],
+                                    [
+                                        1.6230916567122273,
+                                        32.12318328771745
+                                    ]
+                                ],
+                                "input_decisions": [
+                                    0.14191686852775467,
+                                    0.33936534250488726
+                                ],
+                                "output_decisions": [
+                                    0.29805215952600833,
+                                    0.49549829332206063
+                                ]
+                            },
+                            "total_ban": 60,
+                            "type": "dummy"
+                        }
+                    ],
+                    "constraints": [],
+                    "inlink_ban": 35,
+                    "input_ban": 2.8802470456572165,
+                    "input_load": 1.2981623170121426,
+                    "lambda": 7.375469785802395,
+                    "name": "tng-0-1-0",
+                    "outlink_ban": 35,
+                    "output_ban": 4.984987002902284,
+                    "output_load": 1.9226925312097471,
+                    "rsc": 8,
+                    "solution": {
+                        "inner_offloading": [
+                            [
+                                2.870857921634837,
+                                1.7566413481655627e-14
+                            ],
+                            [
+                                3.467100900553286e-12,
+                                3.2064495471519314
+                            ]
+                        ],
+                        "inner_path_ban": [
+                            [
+                                1457.1750653487918,
+                                0.0011819443608833274
+                            ],
+                            [
+                                0.10391030003352786,
+                                2781.4816330089566
+                            ]
+                        ],
+                        "input_decisions": [
+                            0.8168801059795182,
+                            0.48128221103262436
+                        ],
+                        "output_decisions": [
+                            1.1291420783651454,
+                            0.7935504528446018
+                        ]
+                    },
+                    "total_ban": 120,
+                    "type": "group"
+                },
+                {
+                    "alpha": 8,
+                    "children": [
+                        {
+                            "alpha": 4,
+                            "children": [
+                                {
+                                    "alpha": 2,
+                                    "children": [],
+                                    "constraints": [],
+                                    "inlink_ban": 15,
+                                    "input_ban": 7.294259829921496,
+                                    "input_load": 0.2085304182247414,
+                                    "lambda": 2.1558419796981094,
+                                    "name": "tng-0-1-1-0-0",
+                                    "outlink_ban": 15,
+                                    "output_ban": 3.4046017996804254,
+                                    "output_load": 0.05268843852663136,
+                                    "rsc": 8,
+                                    "solution": null,
+                                    "total_ban": 0,
+                                    "type": "server"
+                                },
+                                {
+                                    "alpha": 2,
+                                    "children": [],
+                                    "constraints": [],
+                                    "inlink_ban": 15,
+                                    "input_ban": 6.518955100302226,
+                                    "input_load": 0.7227875359048141,
+                                    "lambda": 2.1562086139970713,
+                                    "name": "tng-0-1-1-0-1",
+                                    "outlink_ban": 15,
+                                    "output_ban": 9.489153824557189,
+                                    "output_load": 0.5665789219077434,
+                                    "rsc": 8,
+                                    "solution": null,
+                                    "total_ban": 0,
+                                    "type": "server"
+                                }
+                            ],
+                            "constraints": [],
+                            "inlink_ban": 30,
+                            "input_ban": 4.393753533098894,
+                            "input_load": 0.9313179541295552,
+                            "lambda": 4.31205059369518,
+                            "name": "tng-0-1-1-0",
+                            "outlink_ban": 30,
+                            "output_ban": 3.474294227112784,
+                            "output_load": 0.6192673604343744,
+                            "rsc": 16,
+                            "solution": {
+                                "inner_offloading": [
+                                    [
+                                        1.9473115614733683,
+                                        9.53122129832007e-16
+                                    ],
+                                    [
+                                        -6.722053469410127e-16,
+                                        1.433421078092257
+                                    ]
+                                ],
+                                "inner_path_ban": [
+                                    [
+                                        35.83779079468145,
+                                        3.109002274331216
+                                    ],
+                                    [
+                                        6.310459122793612,
+                                        79.63905723679906
+                                    ]
+                                ],
+                                "input_decisions": [
+                                    0.20853041822474205,
+                                    0.7227875359048131
+                                ],
+                                "output_decisions": [
+                                    0.05268843852663041,
+                                    0.5665789219077441
+                                ]
+                            },
+                            "total_ban": 60,
+                            "type": "dummy"
+                        },
+                        {
+                            "alpha": 4,
+                            "children": [
+                                {
+                                    "alpha": 2,
+                                    "children": [],
+                                    "constraints": [],
+                                    "inlink_ban": 15,
+                                    "input_ban": 7.269263509240927,
+                                    "input_load": 0.2567438559061081,
+                                    "lambda": 2.1562437621758868,
+                                    "name": "tng-0-1-1-1-0",
+                                    "outlink_ban": 15,
+                                    "output_ban": 2.1559701944813168,
+                                    "output_load": 0.10050009373022158,
+                                    "rsc": 8,
+                                    "solution": null,
+                                    "total_ban": 0,
+                                    "type": "server"
+                                },
+                                {
+                                    "alpha": 2,
+                                    "children": [],
+                                    "constraints": [],
+                                    "inlink_ban": 15,
+                                    "input_ban": 5.101079569357053,
+                                    "input_load": 0.7346304768421044,
+                                    "lambda": 2.1562358583037033,
+                                    "name": "tng-0-1-1-1-1",
+                                    "outlink_ban": 15,
+                                    "output_ban": 9.029092232857705,
+                                    "output_load": 0.5783946185384014,
+                                    "rsc": 8,
+                                    "solution": null,
+                                    "total_ban": 0,
+                                    "type": "server"
+                                }
+                            ],
+                            "constraints": [],
+                            "inlink_ban": 30,
+                            "input_ban": 4.670666590765714,
+                            "input_load": 0.9913743327482121,
+                            "lambda": 4.312479620479589,
+                            "name": "tng-0-1-1-1",
+                            "outlink_ban": 30,
+                            "output_ban": 3.4853859395067555,
+                            "output_load": 0.6788947122686225,
+                            "rsc": 16,
+                            "solution": {
+                                "inner_offloading": [
+                                    [
+                                        1.8994999062697786,
+                                        9.345822726825048e-17
+                                    ],
+                                    [
+                                        3.3480163086352377e-16,
+                                        1.4216053814615988
+                                    ]
+                                ],
+                                "inner_path_ban": [
+                                    [
+                                        7.118946861065335,
+                                        1.6400115233113655
+                                    ],
+                                    [
+                                        6.059664964520901,
+                                        2.8432107629231975
+                                    ]
+                                ],
+                                "input_decisions": [
+                                    0.25674385590610777,
+                                    0.7346304768421043
+                                ],
+                                "output_decisions": [
+                                    0.10050009373022148,
+                                    0.578394618538401
+                                ]
+                            },
+                            "total_ban": 60,
+                            "type": "dummy"
+                        }
+                    ],
+                    "constraints": [],
+                    "inlink_ban": 20,
+                    "input_ban": 4.984987002902284,
+                    "input_load": 1.9226922868777663,
+                    "lambda": 8.62453021417477,
+                    "name": "tng-0-1-1",
+                    "outlink_ban": 20,
+                    "output_ban": 2.8802470456572165,
+                    "output_load": 1.2981620727029959,
+                    "rsc": 32,
+                    "solution": {
+                        "inner_offloading": [
+                            [
+                                3.3807326395656254,
+                                7.147060721024445e-16
+                            ],
+                            [
+                                2.896988204881268e-16,
+                                3.3211052877313776
+                            ]
+                        ],
+                        "inner_path_ban": [
+                            [
+                                1868.9215872110387,
+                                2.1003186482012874
+                            ],
+                            [
+                                1.979114472761036,
+                                2464.994606337383
+                            ]
+                        ],
+                        "input_decisions": [
+                            0.9313179541295549,
+                            0.9913743327482114
+                        ],
+                        "output_decisions": [
+                            0.6192673604343737,
+                            0.6788947122686222
+                        ]
+                    },
+                    "total_ban": 120,
+                    "type": "group"
+                }
+            ],
+            "constraints": [],
+            "inlink_ban": 55,
+            "input_ban": -1.9079995916548853e-08,
+            "input_load": -2.3141043168546378e-11,
+            "lambda": 15.999999999977168,
+            "name": "tng-0-1",
+            "outlink_ban": 55,
+            "output_ban": 0.0024027968466514395,
+            "output_load": -3.068272587353247e-13,
+            "rsc": 40,
+            "solution": {
+                "inner_offloading": [
+                    [
+                        6.077307468790253,
+                        1.922692531243023
+                    ],
+                    [
+                        1.298162072670027,
+                        6.701837927297004
+                    ]
+                ],
+                "inner_path_ban": [
+                    [
+                        197.46690740004888,
+                        4.984987002902284
+                    ],
+                    [
+                        2.8802470456572165,
+                        619.7581628211619
+                    ]
+                ],
+                "input_decisions": [
+                    2.443421156007772e-07,
+                    -2.443652566439462e-07
+                ],
+                "output_decisions": [
+                    -3.327582064801263e-11,
+                    3.296899338253668e-11
+                ]
+            },
+            "total_ban": 110,
+            "type": "dummy"
+        }
+    ],
+    "constraints": [],
+    "inlink_ban": 0,
+    "input_ban": 0,
+    "input_load": 0,
+    "lambda": null,
+    "name": "tng-0",
+    "outlin_ban": 0,
+    "outlink_ban": null,
+    "output_ban": 0,
+    "output_load": 0,
+    "rsc": 73,
+    "solution": {
+        "inner_offloading": [
+            [
+                16.00000000002327,
+                -2.3575745383661888e-11
+            ],
+            [
+                -7.20731734674403e-17,
+                16.00000000000031
+            ]
+        ],
+        "inner_path_ban": [
+            [
+                2777.15083825112,
+                -1.9079995916548853e-08
+            ],
+            [
+                0.0024027968466514395,
+                2308.139411461924
+            ]
+        ],
+        "input_decisions": [
+            -4.3470221511550917e-13,
+            4.3470221511550907e-13
+        ],
+        "output_decisions": [
+            3.067551855618571e-13,
+            -3.0675518556185726e-13
+        ]
+    },
+    "total_ban": 190,
+    "type": "group"
+}
