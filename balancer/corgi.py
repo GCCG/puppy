@@ -7,7 +7,7 @@ from scipy.optimize import minimize
 import sys
 from matplotlib import pyplot as plt
 import json
-from .gen_problem import print_result, check_constraints
+from .wolf import print_result, check_constraints
 # from brokenaxes import brokenaxes
 
 PENALTY = 1000000

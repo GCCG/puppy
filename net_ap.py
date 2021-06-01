@@ -61,6 +61,13 @@ class NetAP:
         elif self._apType == parameters.CODE_SWITCH:
             return self._apType + "-" + str(self._switchID)
 
+    def jsonfy(self):
+        info_dict = {}
+        info_dict['ap_type'] = self._apType
+        info_dict['rsc'] = self._rscAmount
+
+        return info_dict
+
 def createANetAP(group, groupType):
     return NetAP(parameters.CODE_SERVER, groupType.generateServerRsc(), group)
 

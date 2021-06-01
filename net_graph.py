@@ -51,7 +51,7 @@ class NetGraph:
                     rows[j] = 0
             pathMatrix.append(pathes)
             pathLen.append(rows)
-        print("PathMatrix has been created")
+        # print("PathMatrix has been created")
         for c in range(self._APNum):
             for a in range(self._APNum):
                 for b in range(self._APNum):
@@ -59,13 +59,13 @@ class NetGraph:
                         pathLen[a][b] = pathLen[a][c] + pathLen[c][b]
                         # print("---Concatenating: %d-%d-%d" % (a+1, c+1, b+1))
                         pathMatrix[a][b] = self.__concatenate(pathMatrix[a][c], pathMatrix[c][b])
-        print("PathLenMatrix:\n", pathLen)
+        # print("PathLenMatrix:\n", pathLen)
         self._pathMatrix = pathMatrix
 
     def getShortestPath(self, start, end):
         # print("In net_graph, path from %s to %s" % (start.getKey(), end.getKey()))
-        startIndex = self.__getAPIndex(start)
-        endIndex = self.__getAPIndex(end)
+        startIndex = self.getAPIndex(start)
+        endIndex = self.getAPIndex(end)
         # print("Their indices are: %d, %d." % (startIndex, endIndex))
         
         return self._pathMatrix[startIndex][endIndex]
@@ -107,8 +107,8 @@ class NetGraph:
         # Create a link
         tmpLink = net_link.NetLink(len, headAP, tailAP, ban, type)
         # Add it into linkMetrix
-        # print("Index:", self.__getAPIndex(headAP)+1, '  ',self.__getAPIndex(tailAP)+1)
-        self._linkMetrix[self.__getAPIndex(headAP)][self.__getAPIndex(tailAP)] = tmpLink
+        # print("Index:", self.getAPIndex(headAP)+1, '  ',self.getAPIndex(tailAP)+1)
+        self._linkMetrix[self.getAPIndex(headAP)][self.getAPIndex(tailAP)] = tmpLink
         return tmpLink
 
     def addServer(self, rscAmount):
@@ -143,7 +143,7 @@ class NetGraph:
         
         return tmpPath
 
-    def __getAPIndex(self, ap):
+    def getAPIndex(self, ap):
         index = 0
         for i in range(self._APNum):
             if self._APList[i].getID() == ap.getID():
@@ -191,6 +191,8 @@ class TreeNetGraph(NetGraph):
             self.addLink(switch, tmpServer, bandwidth, length, parameters.CODE_NORMAL_LINK)
         self._groupList.append(serverGroup)
 
+        return serverGroup
+
     def addGroup(self, groupTypeName):
         type = self._groupTypeDict[groupTypeName]
         tmpGroup = group.Group(groupTypeName, type.getTaskGenInfoDict())
@@ -221,7 +223,12 @@ class TreeNetGraph(NetGraph):
         print("Servers:")
         s_list = self.getServerList()
         for i in range(len(s_list)):
-            print("%s, resource amount is %f, load mean is %f" % (s_list[i].getKey(), s_list[i].getRscAmount(), s_list[i].getGroup().getTaskGenInfo(parameters.CODE_TASK_TYPE_VA)[0]))
+            print("%s, resource amount is %f, load info is:" % (s_list[i].getKey(), s_list[i].getRscAmount()))
+            info_dict = s_list[i].getGroup().getTaskGenInfoDict()
+            # print(info_dict)
+            for key in info_dict.keys():
+                # print(key)
+                print("---task type %s, mean:%f, variance:%f." % (key, info_dict[key][0], info_dict[key][1]))
         print("Links:")
         l_list = self.getLinkList()
         for j in range(len(l_list)):
@@ -272,9 +279,37 @@ class TreeNetGraph(NetGraph):
             print("%s, from %s, to %s" % (l.getKey(), l.getHeadAP().getKey(), l.getTailAP().getKey()))
         return tmp
 
+    def reset_link_ban(self, start_ap, end_ap, ban):
+        if ban > 0:
+            self._linkMetrix[self.getAPIndex(start_ap)][self.getAPIndex(end_ap)].resetBandwidth(ban)
+        else:
+            raise ValueError("Bandwith should be a positive value.")
 
     # def check_load(self):
     #     # First check if computation rsc is enough
+
+    # 一切包含着其他对象的引用的对象，都无法在其内部转化成json形式，因为
+    # 这些引用信息是外部的，不在内部。
+    # def jsonfy(self):
+    #     info_dict = {}
+    #     info_dict['server_num'] = self._serverNum
+    #     info_dict['ap_num'] = self._APNum
+    #     info_dict['link_num'] = self._linkNum
+    #     # 先AP
+    #     ap_info = []
+    #     for ap in self._APList:
+    #         ap_info.append(ap.jsonfy())
+    #     # 再link
+    #     link_info = []
+    #     for i in range(self._APNum):
+    #         for j in range(self._APNum):
+    #             pass
+    #     # 再group
+        
+    #     group_info = []
+    #     for g in self._groupList:
+    #         pass
+
 
             
 def createANetGraph():
@@ -310,8 +345,8 @@ def createATreeGraph():
     np.random.seed(1)
 
     tng = TreeNetGraph()
-    gtBusiness = group_type.GroupType(defaultServerNum=4, typeName=parameters.CODE_GROUP_TYPE_BUSINESS)
-    gtBusiness.addTaskGenInfo(parameters.CODE_TASK_TYPE_IoT, 2,5)
+    gtBusiness = group_type.GroupType(defaultServerNum=2, typeName=parameters.CODE_GROUP_TYPE_BUSINESS)
+    gtBusiness.addTaskGenInfo(parameters.CODE_TASK_TYPE_IoT, 2, 5)
     gtBusiness.addTaskGenInfo(parameters.CODE_TASK_TYPE_VA, 2, 5)
     gtBusiness.addTaskGenInfo(parameters.CODE_TASK_TYPE_VR, 2, 8)
     gtBusiness.expandBandwidthList(15)
@@ -326,7 +361,7 @@ def createATreeGraph():
     gtBusiness.expandComCapacityList(8)
     gtBusiness.expandComCapacityList(2)
 
-    gtCommunity = group_type.GroupType(defaultServerNum=4, typeName=parameters.CODE_GROUP_TYPE_COMMMUNITY)
+    gtCommunity = group_type.GroupType(defaultServerNum=2, typeName=parameters.CODE_GROUP_TYPE_COMMMUNITY)
     gtCommunity.addTaskGenInfo(parameters.CODE_TASK_TYPE_IoT, 2,5)
     gtCommunity.addTaskGenInfo(parameters.CODE_TASK_TYPE_VA, 2, 5)
     gtCommunity.addTaskGenInfo(parameters.CODE_TASK_TYPE_VR, 2, 8)
@@ -342,7 +377,7 @@ def createATreeGraph():
     gtCommunity.expandComCapacityList(1)
     gtCommunity.expandComCapacityList(2)
 
-    gtCompany = group_type.GroupType(defaultServerNum=4, typeName=parameters.CODE_GROUP_TYPE_COMPANY)
+    gtCompany = group_type.GroupType(defaultServerNum=2, typeName=parameters.CODE_GROUP_TYPE_COMPANY)
     gtCompany.addTaskGenInfo(parameters.CODE_TASK_TYPE_IoT, 4,5)
     gtCompany.addTaskGenInfo(parameters.CODE_TASK_TYPE_VA, 2, 5)
     gtCompany.addTaskGenInfo(parameters.CODE_TASK_TYPE_VR, 2, 8)
@@ -365,8 +400,9 @@ def createATreeGraph():
     rootSwitch = tng.getRootSwitch()
     tng.genGroup(rootSwitch, 20, 20, parameters.CODE_GROUP_TYPE_BUSINESS)
     tng.genGroup(rootSwitch, 20, 20, parameters.CODE_GROUP_TYPE_COMMMUNITY)
-    tng.genGroup(rootSwitch, 35, 35, parameters.CODE_GROUP_TYPE_COMPANY)
-    tng.genGroup(rootSwitch, 20, 20, parameters.CODE_GROUP_TYPE_BUSINESS)
+    # tng.genGroup(rootSwitch, 35, 35, parameters.CODE_GROUP_TYPE_COMPANY)
+    # tng.genGroup(rootSwitch, 20, 20, parameters.CODE_GROUP_TYPE_BUSINESS)
+    # tng.genGroup(rootSwitch, 35, 35, parameters.CODE_GROUP_TYPE_COMPANY)
     tng._floydShortestPath()
 
     print()

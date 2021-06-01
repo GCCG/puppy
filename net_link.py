@@ -44,6 +44,9 @@ class NetLink:
     
     def getKey(self):
         return 'link-'+str(self._linkID)
+    
+    def resetBandwidth(self, ban):
+        self._bandwidth = ban
 
     def __eq__(self, other):
         if type(other) == NetLink:

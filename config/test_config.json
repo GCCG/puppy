@@ -1,0 +1,194 @@
+[
+    {
+        "args": {
+            "seed": 0
+        },
+        "operation": "init"
+    },
+    {
+        "args": {
+            "com_size_mean": 1,
+            "com_size_variance": 1,
+            "data_size_mean": 1,
+            "data_size_variance": 1,
+            "type_name": "video_analysis"
+        },
+        "operation": "add_task_type"
+    },
+    {
+        "args": {
+            "com_size_mean": 1,
+            "com_size_variance": 1,
+            "data_size_mean": 1,
+            "data_size_variance": 1,
+            "type_name": "virtual_reality"
+        },
+        "operation": "add_task_type"
+    },
+    {
+        "args": {
+            "com_size_mean": 1,
+            "com_size_variance": 1,
+            "data_size_mean": 1,
+            "data_size_variance": 1,
+            "type_name": "internet_of_thing"
+        },
+        "operation": "add_task_type"
+    },
+    {
+        "args": {
+            "backhaul_ban_ratio": 0.3333333333333333,
+            "ban_list": [
+                15,
+                20
+            ],
+            "default_server_num": 3,
+            "len_list": [
+                13,
+                15,
+                20
+            ],
+            "rsc_list": [
+                8,
+                5,
+                4,
+                8
+            ],
+            "task_gen_info_dict": [
+                {
+                    "mean": 2,
+                    "task_type_name": "video_analysis",
+                    "variance": 5
+                },
+                {
+                    "mean": 2,
+                    "task_type_name": "virtual_reality",
+                    "variance": 8
+                },
+                {
+                    "mean": 2,
+                    "task_type_name": "internet_of_thing",
+                    "variance": 5
+                }
+            ],
+            "type_name": "business"
+        },
+        "operation": "add_group_type"
+    },
+    {
+        "args": {
+            "backhaul_ban_ratio": 0.3333333333333333,
+            "ban_list": [
+                15,
+                20
+            ],
+            "default_server_num": 3,
+            "len_list": [
+                13,
+                15,
+                20
+            ],
+            "rsc_list": [
+                8,
+                5,
+                4,
+                8
+            ],
+            "task_gen_info_dict": [
+                {
+                    "mean": 1,
+                    "task_type_name": "video_analysis",
+                    "variance": 5
+                },
+                {
+                    "mean": 1,
+                    "task_type_name": "virtual_reality",
+                    "variance": 8
+                },
+                {
+                    "mean": 1,
+                    "task_type_name": "internet_of_thing",
+                    "variance": 5
+                }
+            ],
+            "type_name": "community"
+        },
+        "operation": "add_group_type"
+    },
+    {
+        "args": {
+            "backhaul_ban_ratio": 0.3333333333333333,
+            "ban_list": [
+                15,
+                20
+            ],
+            "default_server_num": 3,
+            "len_list": [
+                13,
+                15,
+                20
+            ],
+            "rsc_list": [
+                8,
+                5,
+                4,
+                8
+            ],
+            "task_gen_info_dict": [
+                {
+                    "mean": 2,
+                    "task_type_name": "video_analysis",
+                    "variance": 5
+                },
+                {
+                    "mean": 2,
+                    "task_type_name": "virtual_reality",
+                    "variance": 8
+                },
+                {
+                    "mean": 2,
+                    "task_type_name": "internet_of_thing",
+                    "variance": 5
+                }
+            ],
+            "type_name": "company"
+        },
+        "operation": "add_group_type"
+    },
+    {
+        "args": {
+            "group_configs": [
+                {
+                    "backhaul_ban_ratio": 0.5,
+                    "group_type_name": "company",
+                    "server_num": 2
+                },
+                {
+                    "backhaul_ban_ratio": 0.5,
+                    "group_type_name": "community",
+                    "server_num": 2
+                }
+            ],
+            "name": "4-servers"
+        },
+        "operation": "gen_tree_net_graph"
+    },
+    {
+        "args": {
+            "group_configs": [
+                {
+                    "backhaul_ban_ratio": 0.5,
+                    "group_type_name": "company",
+                    "server_num": 4
+                },
+                {
+                    "backhaul_ban_ratio": 0.5,
+                    "group_type_name": "community",
+                    "server_num": 2
+                }
+            ],
+            "name": "6-servers"
+        },
+        "operation": "gen_tree_net_graph"
+    }
+]

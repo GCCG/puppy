@@ -4,7 +4,7 @@ from . import  parameters
 from . import task_type
 
 class GroupType:
-    def __init__(self, defaultServerNum, typeName,):
+    def __init__(self, defaultServerNum, typeName):
         self._defaultServerNum = defaultServerNum
         self._typeName = typeName
         self._bandwidthList = []
@@ -66,8 +66,23 @@ class GroupType:
     def getGroupTypeName(self):
         return self._typeName
 
-    def createGroup(self, serverNum):
-        pass
+    def getComCapacityList(self):
+        return list(self._comCapacityList)
+    
+    def getBandwidthList(self):
+        return list(self._bandwidthList)
+
+    def jsonfy(self):
+        info_dict = {}
+        info_dict['default_server_num'] = self._defaultServerNum
+        info_dict['type_name'] = self._typeName
+        info_dict['bandwidth_list'] = self._bandwidthList
+        info_dict['com_capacity_list'] = self._comCapacityList
+        info_dict['task_gen_info_dict'] = self._taskGenInfoDict
+        info_dict['length_list'] = self._lengthList
+
+        return info_dict
+
 
 def createAGroupType(groupTypeName=None):
     if groupTypeName == None:

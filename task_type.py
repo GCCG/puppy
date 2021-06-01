@@ -35,6 +35,12 @@ class TaskType:
     def getDefaultComputeSize(self):
         return self._defaultComputeSize
 
+    def getDataSizeVariance(self):
+        return self._data_size_variance
+
+    def getComSizeVariance(self):
+        return self._com_size_variance
+
 if __name__=='__main__':
     tp = TaskType(20, 15, 30, parameters.CODE_TASK_TYPE_VA)
     gp = group.createAGroup()

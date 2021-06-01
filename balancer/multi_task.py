@@ -16,11 +16,11 @@ TASK_TYPE_LIST = [parameters.CODE_TASK_TYPE_VR, parameters.CODE_TASK_TYPE_VA, pa
 # m is num of servers
 # z is num of task types
 
-def gen_m_objective(tng):
+def gen_m_objective(tng, beta_d, beta_h, task_type_list):
     m = len(tng.getServerList())
-    z = len(TASK_TYPE_LIST)
-    print("server_num is:", m)
-    beta_d, beta_h, c = gen_m_args(tng)
+    z = len(task_type_list)
+    # print("server_num is:", m)
+    c = get_rsc_list(tng)
     
     def obj(x):
         lam = gen_lambda(x, m, z)
@@ -110,14 +110,14 @@ def gen_penalty_func(cons, mode=0):
     return penalty_func
 
 # Generating constraints.
-def gen_m_constraints(tng, mode=0):
-    alpha = get_alpha(tng)
-    beta_d, beta_h, c = gen_m_args(tng)
-    print("beta_d:", beta_d)
-    print("beta_h:", beta_h)
+def gen_m_constraints(tng, beta_d, beta_h, task_type_list, mode=0):
+    alpha = get_alpha(tng, task_type_list=task_type_list)
+    c = get_rsc_list(tng)
+    # print("beta_d:", beta_d)
+    # print("beta_h:", beta_h)
     constraints = []
     m = len(tng.getServerList())
-    z = len(TASK_TYPE_LIST)
+    z = len(task_type_list)
     s_list = tng.getServerList()
     l_list = tng.getLinkList()
 
@@ -129,7 +129,7 @@ def gen_m_constraints(tng, mode=0):
     for i in range(m):
         for r in range(z):
             b1[i*z + r] = alpha[i,r]
-            info1.append("remaining load of task %s in %s" % (TASK_TYPE_LIST[r], s_list[i].getKey()))
+            info1.append("remaining load of task %s in %s" % (task_type_list[r], s_list[i].getKey()))
             type1.append('eq')
             for j in range(m):
                 C1[i*z + r, r*m**2 + i*m + j] = -1
@@ -172,7 +172,7 @@ def gen_m_constraints(tng, mode=0):
             info4.append('surplus bandwith of path from %s to %s' %(s_list[i].getKey(), s_list[j].getKey()) )
             type4.append('ineq')
             for r in range(z):
-                C4[i*m + j, r*m**2 + i*m + j] = - beta_h[r]
+                C4[i*m + j, r*m**2 + i*m + j] = - beta_d[r]
     
     # Constraint for offloading decison
     C5 = np.zeros((z*m**2, z*m**2 + m**2))
@@ -182,7 +182,7 @@ def gen_m_constraints(tng, mode=0):
     for i in range(m):
         for j in range(m):
             for r in range(z):
-                info5.append('offloading of task %s from %s to %s' %(TASK_TYPE_LIST[r],s_list[i].getKey(), s_list[j].getKey()))
+                info5.append('offloading of task %s from %s to %s' %(task_type_list[r],s_list[i].getKey(), s_list[j].getKey()))
                 type5.append('ineq')
                 C5[r*m**2 + i*m + j, r*m**2 + i*m + j] = 1
 
@@ -229,29 +229,93 @@ def check_m_constraints(cons, x, mode=0):
                 num = num + 1
 
 # Solvers
-def solve_multi(tng):
-    obj = gen_m_objective(tng)
-    cons = gen_m_constraints(tng)
+def solve_multi(tng, beta_d, beta_h, task_type_list):
+    obj = gen_m_objective(tng, beta_d=beta_d, beta_h=beta_h, task_type_list=task_type_list)
+    cons = gen_m_constraints(tng, beta_d=beta_d, beta_h=beta_h, task_type_list=task_type_list)
     m = len(tng.getServerList())
-    z = len(TASK_TYPE_LIST)
+    z = len(task_type_list)
 
     iteration=20
     success = 0
     for i in range(iteration):
-        x0 = gen_m_feasible_solution(cons, tng, True).x
+        x0 = gen_m_feasible_solution(cons, tng,task_type_list=task_type_list, true_initial=True).x
         res = minimize(obj, x0, method='SLSQP',constraints=cons)
         if res.success == True:
             success = success + 1
             print(res)
             check_m_constraints(cons, res.x)
-            print_result(res.x, m, z)
+            print_result(res.x, m, z, task_type_list=task_type_list)
     print("Iterate %d times, succeed %d times, ratio %f" % (iteration, success, success/iteration))
 
+def test_multi(tng, beta_d, beta_h, task_type_list, repeat=5):
+    obj = gen_m_objective(tng, beta_d=beta_d, beta_h=beta_h, task_type_list=task_type_list)
+    cons = gen_m_constraints(tng, beta_d=beta_d, beta_h=beta_h, task_type_list=task_type_list)
+    m = len(tng.getServerList())
+    z = len(task_type_list)
+
+    iteration=20
+    success = 0
+    min_fun =1000000000
+    min_res = None
+    while success < repeat:
+        x0 = gen_m_feasible_solution(cons, tng,task_type_list=task_type_list, true_initial=True).x
+        res = minimize(obj, x0, method='SLSQP',constraints=cons)
+        if res.success == True and res.fun < 1000:
+            success = success + 1
+            print("---------success count %d---------" % success)
+            print(res.fun)
+            # check_m_constraints(cons, res.x)
+            # print_result(res.x, m, z, task_type_list=task_type_list)
+            # parse_result(tng=tng, x = res.x, z = z)
+            if res.fun < min_fun:
+                min_fun = res.fun
+                min_res = res
+    # return min_res.x
+    # tng.print_info()
+    # print(min_res)
+    check_m_constraints(cons, min_res.x)
+    # print_result(min_res.x, m, z, task_type_list=task_type_list)
+    return parse_result(tng=tng, x=min_res.x, z=z)
+    
+def parse_result(tng, x, z):
+    """ 进行一些统计，将问题的解，解析为我们需要的形式 """
+    m = len(tng.getServerList())
+    x = np.reshape(x, ((z+1)*m, m))
+    groups = tng.getGroupList()
+    poops = np.zeros((len(groups), z))
+    s_list = tng.getServerList()
+    for v in range(len(groups)):
+        indicators = np.zeros(m)
+        group = groups[v]
+        servers_in_group = tng.getServersInGroup(group)
+        # 解析出域内边缘服务器对应到解中的行号
+        
+        for k in range(len(servers_in_group)):
+            # print(servers_in_group[k].getKey())
+            for i in range(len(s_list)):
+                if s_list[i].getKey() == servers_in_group[k].getKey():
+                    indicators[i] = 1
+                    break
+        # print("indicators for %s" % group.getKey())
+        # print(indicators)
+        for r in range(z):
+            # result_for_type = x[r*m:(r+1)*m,:]
+            receiver_loads = np.sum(x[r*m:(r+1)*m,:], axis=0)
+            # print(receiver_loads)
+            poops[v, r] = np.dot(receiver_loads, indicators)
+            # print("Offloading decisions for task %s:" % task_type_list[i])
+            # print(x[i*m:(i+1)*m,:])
+            # print("Senders offloaded:\n", np.sum(x[i*m:(i+1)*m,:], axis=1))
+            # print("Receivers received:\n", np.sum(x[i*m:(i+1)*m,:], axis=0))
+        # print("Bandwidth for pathes:\n", x[(z-1)*m:z*m, :])
+    print("parsed result:\n", poops)
+    return poops
+
 # Generating feasible solution
-def gen_m_feasible_solution(cons, tng, true_initial=False,mode=0):
+def gen_m_feasible_solution(cons, tng, task_type_list, true_initial=False,mode=0):
     penalty_func = gen_penalty_func(cons, mode=mode)
     m = len(tng.getServerList())
-    z = len(TASK_TYPE_LIST)
+    z = len(task_type_list)
     if true_initial == True:
         for i  in range(100):
             x0 = np.random.rand((z+1)*m**2)
@@ -269,47 +333,48 @@ def gen_m_feasible_solution(cons, tng, true_initial=False,mode=0):
     print(res.success)
 
     return res
+def linear_obj(x):
+    return sum(x)
 
 # Some helpful tools
-def gen_m_args(tng):
+def get_rsc_list(tng):
     c = []
-    _beta_d = np.array(BETA_D)
-    _beta_h = np.array(BETA_H)
     s_list = tng.getServerList()
     for s in s_list:
         c.append(s.getRscAmount())
-    print("beta_d:\n",_beta_d)
-    print("beta_h",_beta_h)
+    # print("beta_d:\n",_beta_d)
+    # print("beta_h",_beta_h)
     print("Servers' rsc:\n", c)
     # print("np.dot(beta_d, beta_h)",np.dot(_beta_d, _beta_h))
-    return _beta_d, _beta_h, c
+    return c
 
-def get_alpha(tng):
+def get_alpha(tng, task_type_list):
     s_list = tng.getServerList()
     m = len(s_list)
-    z = len(TASK_TYPE_LIST)
+    z = len(task_type_list)
     alpha = np.zeros((m, z))
     for i in range(m):
         for r in range(z):
-            alpha[i,r] = s_list[i].getGroup().getTaskGenInfo(TASK_TYPE_LIST[r])[0]
-    print("alpha:\n",alpha)
+            alpha[i,r] = s_list[i].getGroup().getTaskGenInfo(task_type_list[r])[0]
+    # print("alpha:\n",alpha)
     return alpha
 
-def print_result(x, m, z):
+def print_result(x, m, z, task_type_list):
     # print(x)
     x = np.reshape(x, ((z+1)*m, m))
     for i in range(z):
-        print("Offloading decisions for task %s:" % TASK_TYPE_LIST[i])
+        print("Offloading decisions for task %s:" % task_type_list[i])
         print(x[i*m:(i+1)*m,:])
         print("Senders offloaded:\n", np.sum(x[i*m:(i+1)*m,:], axis=1))
         print("Receivers received:\n", np.sum(x[i*m:(i+1)*m,:], axis=0))
     print("Bandwidth for pathes:\n", x[(z-1)*m:z*m, :])
 
-def test_tools(tng):
+
+def test_tools(tng, beta_d, beta_h, task_type_list):
     get_alpha(tng)
-    gen_m_args(tng)
+    get_rsc_list(tng)
     m = len(tng.getServerList())
-    z = len(TASK_TYPE_LIST)
+    z = len(task_type_list)
 
     cons = gen_m_constraints(tng)
     # x = np.ones(((z+1)*m**2))
@@ -320,14 +385,16 @@ def test_tools(tng):
     print_result(res.x, m, z)
     lam = gen_lambda(res.x, m, z)
     prob = gen_prob(res.x, m, z)
-    es = gen_es(prob, beta_h=BETA_H, m=m)
-    ess = gen_ess(prob, BETA_H, m)
+    es = gen_es(prob, beta_h=beta_h, m=m)
+    ess = gen_ess(prob, beta_h=beta_h, m=m)
     print("load:\n", lam*es)
+
+
 if __name__=='__main__':
     np.set_printoptions(formatter={'float':'{:.3f}'.format})
     tng = createATreeGraph()
     tng.print_info()
 
-
-    solve_multi(tng)
+    # test_multi_types(tng, [1,2,3], [4,5,6])
+    solve_multi(tng, beta_d=BETA_D, beta_h=BETA_H, task_type_list=TASK_TYPE_LIST)
     # test_tools(tng)

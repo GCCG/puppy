@@ -7,8 +7,9 @@ from scipy.optimize import minimize
 import sys
 from matplotlib import pyplot as plt
 import json
-from .gen_problem import check_constraints
+from .wolf import check_constraints
 import math
+import time
 
 
 
@@ -17,11 +18,13 @@ TYPE_SERVER = 'server'
 TYPE_DUMMY = 'dummy'
 INFINITY = 10000000
 PENALTY = 1000000
-BETA_D = [2,0.2,0.1]
+BETA_D = [1,0.2,0.1]
 SIGMA_D = [1,1,1]
-BETA_H = [1,0.2,0.3]
+BETA_H = [0.5,2,0.3]
 SIGMA_H = [1,1,1]
 TASK_TYPE_LIST = [parameters.CODE_TASK_TYPE_VR, parameters.CODE_TASK_TYPE_VA, parameters.CODE_TASK_TYPE_IoT]
+
+ADJUST = 0.0001
 
 # Only for two-layer tng
 def transform_tng(tng):
@@ -34,7 +37,7 @@ def transform_tng(tng):
     g_list = tng.getGroupList()
     bl_list = tng.get_backhaul_links()
     for g in g_list:
-        s_list = tng.getServersInGroup(g)
+        s_list = tng.getServersInGroup(g) 
         switch = tng.getSwitchInGroup(g)
         g_tmp = create_node()
         g_tmp['type'] = TYPE_GROUP
@@ -126,7 +129,6 @@ def reconstruct_tree(tree, degree):
     tree['children'] = children
     return tree
 
-
 def create_node():
     tmp = {}
     # 任务生成速率
@@ -161,6 +163,10 @@ def create_node():
     tmp['lambda'] = None
     # 叶结点数目
     tmp['leaf_num'] = None
+    # 子域间任务的传输时间
+    tmp['trans_time'] = 0
+    # 任务的计算时间
+    tmp['com_time'] = 0
     
     return tmp
 
@@ -182,12 +188,12 @@ def construct_sub_problems(tree, name):
         in_link_ban = 0
         for c in tree['children']:
             in_link_ban = in_link_ban + c['inlink_ban']
-        tree['inlink_ban'] = in_link_ban
+        tree['inlink_ban'] = in_link_ban/min(2, len(tree['children']))
     if tree['outlink_ban'] is None and tree['type'] == TYPE_DUMMY:
         out_link_ban = 0
         for c in tree['children']:
             out_link_ban = out_link_ban + c['outlink_ban']
-        tree['outlink_ban'] = out_link_ban
+        tree['outlink_ban'] = out_link_ban//min(2, len(tree['children']))
     if tree['alpha'] is None and tree['type'] == TYPE_DUMMY:
         alpha = 0
         for c in tree['children']:
@@ -214,6 +220,17 @@ def traverse_tree(tree, name):
             if node != None and  node['name'] == name:
                 return node
 
+def load_tree(file_name):
+    with open(file_name, 'r') as f:
+        return json.load(f)
+
+def store_tree(tree, file_name):
+    with open(file_name, 'w') as f:
+        json.dump(tree, f, sort_keys=True, indent=4, separators=(',', ': '))
+        # f.close()
+
+
+#####------------hierarchy求解器-------------############
 def solve_problems(tree, max_repeat=30, max_success=5):
     """ 以先序遍历的顺序求解子问题
     问题的解放在字典里
@@ -227,16 +244,21 @@ def solve_problems(tree, max_repeat=30, max_success=5):
     min_res = None
     success_count = 0
     if len(children[0]['children']) > 0: # 如果存在孙子
-        obj = gen_obj_for_nongroup(tree)
+        obj = gen_obj_for_nongroup(tree, mode=3)
         while iteration < max_repeat and success_count < max_success:
             print("iteration ",iteration)
-            x0 = gen_feasible_solution(cons, tree).x
+            try:
+                x0 = gen_feasible_solution(cons, tree).x
+            except ValueError:
+                return False
             res = minimize(obj, x0, method='SLSQP', constraints=cons)
             iteration = iteration + 1
+            # print(res.fun)
+            # print(res.message)
             if res.success == True and res.fun > 0:
                 success_count = success_count + 1
-                print("success_count: ",success_count)
-            # print(res.fun)
+                # print("success_count: ",success_count)
+                # print(res.fun)
             # print(res.success)
             if res.fun < min_fun and res.fun > 0 and res.success == True:
                 min_fun = res.fun
@@ -245,13 +267,20 @@ def solve_problems(tree, max_repeat=30, max_success=5):
         obj = gen_obj_for_group(tree)
         while iteration < max_repeat and success_count < max_success:
             print("iteration ",iteration)
-            x0 = gen_feasible_solution(cons, tree).x
+            try:
+                x0 = gen_feasible_solution(cons, tree).x
+            except ValueError:
+                return False
             res = minimize(obj, x0, method='SLSQP', constraints=cons)
+            # print(res.fun)
+            # print(res.message)
             iteration = iteration + 1
             # print(res.fun)
             # print(res.success)
             if res.success == True and res.fun > 0:
                 success_count = success_count + 1
+                # print("success_count: ",success_count)
+                # print(res.fun)
             if res.fun < min_fun and res.fun > 0 and res.success == True:
                 # tree['solution'] = result_to_dict(res.x, len(children))
                 min_fun = res.fun
@@ -259,6 +288,8 @@ def solve_problems(tree, max_repeat=30, max_success=5):
     else:
         print("Something is wrong with your tree.")
         sys.exit()
+    if min_res == None:
+        return False 
     tree['solution'] = result_to_dict(min_res.x, len(children))
     print("In %s, type is %s, res is:" % (tree['name'], tree['type']))
     print(min_res)
@@ -266,6 +297,7 @@ def solve_problems(tree, max_repeat=30, max_success=5):
     # 给子问题设置参数
     x = min_res.x
     r = len(children)
+    tree['trans_time'] = trans_time(x, r, beta_d=BETA_D[0])
     gamma_k = tree['input_load']
     theta_k = tree['output_load']
     phi_k_in = tree['input_ban']
@@ -276,28 +308,39 @@ def solve_problems(tree, max_repeat=30, max_success=5):
     gamma_v = gamma_vs(x, r)
     theta_v = theta_vs(x, r)
     lam_v = lam_vs(x, r)
-    rscs = []
+    mu_v = []
+    ban_list = []
     for v in range(r):
-        rscs.append(children[v]['rsc'])
-    print("lams:\n",lam_v)
-    print("rscs:\n", rscs)
-    omega = np.array(rscs)/lam_v
-    print("omega:\n",omega)
+        mu_v.append(children[v]['rsc']/BETA_H[0])
+        ban_list.append(children[v]['inlink_ban'])
+    print("trans_time:",trans_time(x, r, BETA_D[0]))
+    print("com_time:", com_time(x, r, BETA_H[0], SIGMA_H[0], tree))
+    print("inlink_bans:", ban_list)
+    print("gamma_v:",gamma_v)
+    print("theta_v:",theta_v)
+    print("phi_v_in:",phi_v_in)
+    print("phi_v_out:",phi_v_out)
+    print("lams:",lam_v)
+    print("mu_v:", mu_v)
+    omega = np.array(mu_v)/lam_v
+    print("omega:",omega)
     k = 0
     psi = cal_psi(SIGMA_H[0], BETA_H[0])
     m = 0
     for child in children:
-        print("m_v*h(omega_v): ",child['leaf_num']*h(omega[k], psi))
+        print("leaf_num: ",child['leaf_num'])
+        print("m_v*h(omega_v): %f" % (child['leaf_num']*h(omega[k], psi)))
         k = k + 1
         if len(child['children']) > 0:
             m = m + len(child['children'])
         else:
             m = m + 1
-    omega_0 = sum(rscs)/sum(lam_v)
+    omega_0 = sum(mu_v)/sum(lam_v)
     print("omega_0:",omega_0)
     print("leaf_num: ", tree['leaf_num'])
-    # print("")
     print("m*h(omega_0)", tree['leaf_num']*h(omega_0, psi))
+    
+    # check_constraints(cons, x)
     for v in range(r):
         children[v]['input_load'] = gamma_v[v]
         children[v]['output_load'] = theta_v[v]
@@ -308,8 +351,62 @@ def solve_problems(tree, max_repeat=30, max_success=5):
     # 递归解决子问题
     if len(children[0]['children']) > 0:
         for child in children:
-            solve_problems(child, max_repeat, max_success)
-    
+            success = solve_problems(child, max_repeat, max_success)
+            if success == False:
+                return False
+    else:
+        tree['com_time'] = com_time(x=x, r=r, beta_h=BETA_H[0], sigma_h=SIGMA_H[0], node=tree)
+    return True
+
+def cal_total_time_from_tree(tree):
+    time = tree['com_time'] + tree['trans_time']
+    for child in tree['children']:
+        time = time + cal_total_time_from_tree(child)
+    return time
+
+def cal_total_com_time(tree):
+    time = 0
+    if tree['type'] == 'server':
+        time = f_v(tree['lambda'], mu_v=tree['rsc']/BETA_H[0], beta_h=BETA_H[0], sigma_h=SIGMA_H[0])
+    for child in tree['children']:
+        time = time + cal_total_com_time(child)
+    return time
+
+
+# 从解中计算传输时间
+def trans_time(x, r, beta_d):
+    f = 0
+    for v in range(r):
+        for u in range(r):
+            if u != v and x[2*r + r**2 + u*r + v] > 0:
+                f =  f + x[2*r + u*r + v]*beta_d/x[2*r + r**2 + u*r + v]
+    return f
+
+def com_time(x, r, beta_h, sigma_h, node):
+    # rsc_list = []
+    # for child in node['children']:
+    #     rsc_list.append(child['rsc'])
+    # rsc_list = np.array(rsc_list)
+    # mu = rsc_list/beta_h
+    # lam_vs = np.zeros(r)
+    # for v in range(r):
+    #     lam_vs[v] = x[v]
+    #     for u in range(r):
+    #         lam_vs[v] = lam_vs[v] + x[2*r + u*r + v]
+    # f = 0
+    if len(node['children'][0]['children']) > 0:
+        # print("nongroup")
+        obj = gen_obj_for_nongroup(node, need_trans_time=False, mode=3)
+    else:
+        # print("group")
+        obj = gen_obj_for_group(node, need_trans_time=False)
+    # for v in range(r):
+    #     f = f + f_v(lam_vs[v], mu[v], sigma_h, beta_h)
+   
+    return obj(x)
+    # return f
+
+# 计算
 def phi_v_ins(x, gamma_k, phi_k_in, r):
     ins = np.zeros(r)
     for v in range(r):
@@ -364,18 +461,33 @@ def result_to_dict(x, r):
     result['inner_path_ban'] = np.reshape(x[2*r + r**2: 2*r + r**2*2], (r,r)).tolist()
     return result
 
-def gen_feasible_solution(cons, node, true_initial=True):
-    penalty_func = gen_penalty_func(cons)
+
+# 用于生成可行解的函数
+def gen_feasible_solution(cons, node, true_initial=True, gen_feasible='linear'):
+    if gen_feasible == 'penalty':
+        obj = gen_penalty_func(cons)
+    elif gen_feasible == 'linear':
+        obj = linear_obj
+    # penalty_func = gen_penalty_func(cons)
     r = len(node['children'])
     if true_initial == True:
         for i  in range(100):
-            x0 = np.random.rand(2*r + 2*r**2)
-            res = minimize(penalty_func, x0, method='SLSQP',constraints=cons)
+            x0 = np.random.rand(2*r + 2*r**2)*2
+            res = minimize(obj, x0, method='SLSQP',constraints=cons)
             if res.success ==True:
                 break
-        if i==100:
+        if i==99:
+            print("-------------------Failed----------------------")
+            print(res)
+            # x0 = np.zeros((2*r + 2*r**2))
+            check_constraints(cons, x0)
+            x0 = np.zeros((2*r + 2*r**2))
+            check_constraints(cons, x0)
             print("Iteration for finding initial value exceeds 100 times.")
-            sys.exit(10)
+            raise ValueError("Can't find feasible solution.")
+    # print(res.success)
+    # if node['name'] == 'tng-0-0-0':
+    #     check_constraints(cons, x0)
     return res
 
 def gen_penalty_func(cons):
@@ -390,6 +502,11 @@ def gen_penalty_func(cons):
         return f
     return penalty_func
 
+def linear_obj(x):
+    return sum(x)
+
+
+# 用于生成约束的函数
 def gen_cons(node, beta_d):
     gamma_k = node['input_load']
     theta_k = node['output_load']
@@ -416,9 +533,11 @@ def gen_cons(node, beta_d):
     info1 = ['remaining input of %s' % node['name'], 'remaining output of %s'  % node['name']]
     for j in range(r):
         C1[0, j] = -1
-        C1[1, r + j] = -1
+        C1[1, r + j] = -1 
     b1[0] = gamma_k
     b1[1] = theta_k
+    b1[0] = max(0, gamma_k) # 注意，注意,gamma_k和theta_K一定要保证大于0，否则问题经常会出现无解的情况。
+    b1[1] = max(0, theta_k)
 
     # 针对子域输出负载的约束
     C2 = np.zeros((r, length))
@@ -431,7 +550,7 @@ def gen_cons(node, beta_d):
         type2.append('eq')
         info2.append("remaning load of %s" % children[i]['name'])
         for j in range(r):
-            C2[i, 2*r + i*r + j] = -1
+            C2[i, 2*r + i*r + j] = -1 
     # 针对子域输入负载的约束
     C3 = np.zeros((r, length))
     b3 = np.zeros(r)
@@ -488,8 +607,8 @@ def gen_cons(node, beta_d):
             
 
     # 针对子域在本域内输入、输出卸载量的约束
-    C6 = np.zeros((r**2, length))
-    b6 = np.zeros(r**2)
+    C6 = np.zeros((r**2, length)) 
+    b6 = np.zeros(r**2) # 这里不能减去ADJUST，会导致求解效率变差，解的效果变差。
     type6 = []
     info6 = []
     for i in range(r):
@@ -532,26 +651,38 @@ def gen_cons(node, beta_d):
         for v in range(r):
             alphas_v = []
             rsc_list_v = []
-            ban_list_v = []
+            in_ban_list_v = []
+            out_ban_list_v = []
             child = children[v]
             for gs in child['children']:
                 alphas_v.append(gs['alpha'])
                 rsc_list_v.append(gs['rsc'])
-                ban_list_v.append(gs['inlink_ban'] + gs['outlink_ban'])
+                in_ban_list_v.append(gs['inlink_ban'])
+                out_ban_list_v.append(gs['outlink_ban']) 
             alphas_v = np.array(alphas_v)
             rsc_list_v = np.array(rsc_list_v)
-            ban_list_v = np.array(ban_list_v)
-            fun = lambda x, v=v, alphas_v=alphas_v, rsc_list_v=rsc_list_v, ban_list_v=ban_list_v:\
-                subgroup_ban_constraint(x, r, v, alphas_v, rsc_list_v, ban_list_v, beta_d, phi_k_in, phi_k_out, gamma_k, theta_k)
+            in_ban_list_v = np.array(in_ban_list_v)
+            out_ban_list_v = np.array(out_ban_list_v)
+            # print("ban sum: ",sum(in_ban_list_v))
+            in_fun = lambda x, v=v, alphas_v=alphas_v, rsc_list_v=rsc_list_v, in_ban_list_v=in_ban_list_v:\
+                subgroup_ban_constraint_2(x, r, v, alphas_v, rsc_list_v, in_ban_list_v, beta_d, phi_k_in, phi_k_out, gamma_k, theta_k, direction='in')
             tmp = {}
             tmp['type'] = 'ineq'
-            tmp['fun'] = fun
-            tmp['info'] = 'lower bound of remainding bandwith in subgroup %s' % child['name']
+            tmp['fun'] = in_fun
+            tmp['info'] = 'lower bound of remainding in-link bandwith in subgroup %s' % child['name']
+            cons.append(tmp)
+
+            out_fun = lambda x, v=v, alphas_v=alphas_v, rsc_list_v=rsc_list_v, out_ban_list_v=out_ban_list_v:\
+                subgroup_ban_constraint(x, r, v, alphas_v, rsc_list_v, out_ban_list_v, beta_d, phi_k_in, phi_k_out, gamma_k, theta_k, direction='out')
+            tmp = {}
+            tmp['type'] = 'ineq'
+            tmp['fun'] = out_fun
+            tmp['info'] = 'lower bound of remainding out-link bandwith in subgroup %s' % child['name']
             cons.append(tmp)
     
     return cons
 
-def subgroup_ban_constraint(x, r, v, alphas_v, rsc_list_v, ban_list_v, beta_d, phi_in_k, phi_out_k, gamma_k, theta_k):
+def subgroup_ban_constraint(x, r, v, alphas_v, rsc_list_v, ban_list_v, beta_d, phi_in_k, phi_out_k, gamma_k, theta_k, direction):
     lam_v = x[v]
     if gamma_k > 0:
         phi_in_v = x[v]*phi_in_k/gamma_k
@@ -561,26 +692,83 @@ def subgroup_ban_constraint(x, r, v, alphas_v, rsc_list_v, ban_list_v, beta_d, p
         phi_out_v = x[r + v]*phi_out_k/theta_k
     else:
         phi_out_v = 0
+    gamma_v = 0
+    theta_v = 0
     for u in range(r):
         lam_v = lam_v + x[2*r + u*r + v]
         if u != v:
+            gamma_v = gamma_v + x[2*r + u*r + v]
+            theta_v = theta_v + x[2*r + r**2 + v*r + u]
             phi_in_v = phi_in_v + x[2*r + r**2 + u*r + v]
             phi_out_v = phi_out_v + x[2*r + r**2 + v*r + u]
-    
-    return sum(ban_list_v) - phi_in_v - phi_out_v - 2*beta_d*gen_inner_trans(alphas_v, lam_v, rsc_list_v)
+    if direction =='in':
+        # print("inner trans: ", gen_inner_trans(alphas_v, lam_v, rsc_list_v))
+        # if gamma_v > 0:
+        #     return sum(ban_list_v) - phi_in_v - beta_d*gen_inner_trans(alphas_v, lam_v, rsc_list_v, 'in')
+        # else:
+        #     return sum(ban_list_v) - phi_in_v - beta_d*gen_inner_trans(alphas_v, lam_v, rsc_list_v, 'in')
+        return sum(ban_list_v) - phi_in_v - beta_d*gen_inner_trans(alphas_v, lam_v, rsc_list_v, 'in')
+        # return gamma_v*sum(ban_list_v)/2 - lam_v*phi_in_v
+    elif direction == 'out':
+        # if theta_v > 0:
+        #     return sum(ban_list_v) - phi_out_v - beta_d*gen_inner_trans(alphas_v, lam_v, rsc_list_v)
+        # else:
+        #     return sum(ban_list_v) - phi_out_v - beta_d*gen_inner_trans(alphas_v, lam_v, rsc_list_v)
+        return sum(ban_list_v) - phi_out_v - beta_d*gen_inner_trans(alphas_v, lam_v, rsc_list_v, 'out')
+        
+        # return theta_v*sum(ban_list_v)/2 - lam_v*phi_out_v
+        # return max(0,3*theta_v) -phi_out_v
+    else:
+        raise ValueError("direction value is not valid.")
 
-
-def gen_inner_trans(alphas, lam_v, rsc_list):
+def gen_inner_trans(alphas, lam_v, rsc_list, direction):
     lam = np.zeros(len(rsc_list))
     c_v = sum(rsc_list)
     for j in range(len(rsc_list)):
         lam[j] = lam_v*rsc_list[j]/c_v
     trans_amount = 0
-    for j in range(len(rsc_list)):
-        trans_amount = trans_amount + max(alphas[j]-lam[j], 0)
+    if direction == 'in':
+        for j in range(len(rsc_list)):
+            # trans_amount = trans_amount + abs(alphas[j]-lam[j])
+            trans_amount = trans_amount + max(0, lam[j] - alphas[j])
+    elif direction == 'out':
+        for j in range(len(rsc_list)):
+            trans_amount = trans_amount + max(0, alphas[j] - lam[j])
+    else:
+        raise ValueError("direction value is not valied.")
     return trans_amount
 
-def gen_obj_for_nongroup(node, mode=0):
+def subgroup_ban_constraint_2(x, r, v, alphas_v, rsc_list_v, ban_list_v, beta_d, phi_in_k, phi_out_k, gamma_k, theta_k, direction):
+    lam_v = x[v]
+    if gamma_k > 0:
+        phi_in_v = x[v]*phi_in_k/gamma_k
+    else:
+        phi_in_v = 0
+    if theta_k > 0:
+        phi_out_v = x[r + v]*phi_out_k/theta_k
+    else:
+        phi_out_v = 0
+    gamma_v = 0
+    theta_v = 0
+    for u in range(r):
+        lam_v = lam_v + x[2*r + u*r + v]
+        if u != v:
+            gamma_v = gamma_v + x[2*r + u*r + v]
+            theta_v = theta_v + x[2*r + r**2 + v*r + u]
+            phi_in_v = phi_in_v + x[2*r + r**2 + u*r + v]
+            phi_out_v = phi_out_v + x[2*r + r**2 + v*r + u]
+    if direction =='in':
+        # return sum(ban_list_v) - phi_in_v - beta_d*gen_inner_trans(alphas_v, lam_v, rsc_list_v, 'in')
+        return sum(ban_list_v) - beta_d*gen_inner_trans(alphas_v, lam_v, rsc_list_v, 'in')*sum(ban_list_v)/sum(rsc_list_v) - phi_in_v 
+    elif direction == 'out':
+        # return sum(ban_list_v) - phi_out_v - beta_d*gen_inner_trans(alphas_v, lam_v, rsc_list_v, 'out')
+        return sum(ban_list_v) - beta_d*gen_inner_trans(alphas_v, lam_v, rsc_list_v, 'out')*sum(ban_list_v)/sum(rsc_list_v) - phi_out_v
+    else:
+        raise ValueError("direction value is not valid.")
+
+
+# 生成目标函数
+def gen_obj_for_nongroup(node, mode=0, need_trans_time=True):
     """ 对于非叶结点，优化函数是上界 """
     gamma_k = node['input_load']
     phi_k_in = node['input_ban'] 
@@ -625,24 +813,30 @@ def gen_obj_for_nongroup(node, mode=0):
                 if u !=v:
                     theta_vs[v] = theta_vs[v] + x[2*r + v*r + u]
                     phi_vs[v] = phi_vs[v] + x[2*r + r**2 + u*r + v] + x[2*r + r**2 + v*r + u]
-                    
+        # print("lam_vs:\n", lam_vs)
+        # print("rsc_list:\n", rsc_list)
         lam = gen_lam(x, r)
         f = 0
         for v in range(r):
+            # print("leaf_num of %s is %d." % ( node['children'][v]['name'], node['children'][v]['leaf_num']))
             f =  f + upper_bound(alpha_list[v], rsc_list[v], ban_list[v], psi, lam_vs[v], phi_vs[v], theta_vs[v], beta_d, beta_h, node['children'][v], mode)
-            for u in range(r):
-                if u != v and x[2*r + r**2 + u*r + v] > 0:
-                    f =  f + x[2*r + u*r + v]*beta_d/x[2*r + r**2 + u*r + v]
+            # print("upperbound for %d" % v)
+            # print(upper_bound(alpha_list[v], rsc_list[v], ban_list[v], psi, lam_vs[v], phi_vs[v], theta_vs[v], beta_d, beta_h, node['children'][v], mode))
+            if need_trans_time == True:
+                for u in range(r):
+                    if u != v and x[2*r + r**2 + u*r + v] > 0:
+                        f =  f + x[2*r + u*r + v]*beta_d/x[2*r + r**2 + u*r + v] #+ 0.001 * x[2*r + r**2 + u*r + v]
         return f
     return obj
 
-def gen_obj_for_group(node):
+def gen_obj_for_group(node, need_trans_time=True):
     gamma_k = node['input_load']
     phi_k_in = node['input_ban'] 
     phi_k_out = node['output_ban']
     theta_k = node['output_load']
     sigma_h = SIGMA_H[0]
     beta_h = BETA_H[0]
+    beta_d = BETA_D[0]
     r = len(node['children']) # 域内节点数目
     rsc_list = []
     for child in node['children']:
@@ -662,9 +856,10 @@ def gen_obj_for_group(node):
         # print("rsc_list:", rsc_list)
         for v in range(r):
             f = f + f_v(lam_vs[v], mu[v], sigma_h, beta_h)
-            for u in range(r):
-                if u != v and x[2*r + r**2 + u*r + v] > 0:
-                    f = f + x[2*r + u*r + v]*beta_h/x[2*r + r**2 + u*r + v]
+            if need_trans_time:
+                for u in range(r):
+                    if u != v and x[2*r + r**2 + u*r + v] > 0:
+                        f = f + x[2*r + u*r + v]*beta_d/x[2*r + r**2 + u*r + v]
         return f
     return obj
 
@@ -673,6 +868,8 @@ def f_v(lam_v, mu_v, sigma_h, beta_h):
     """ 当被优化的结点的子结点已经是边缘服务器时，采用的时间估计函数 """
     return (1/mu_v + (sigma_h**2 + beta_h**2)*lam_v / (2*mu_v * beta_h**2 * (mu_v-lam_v)))*lam_v
 
+def f_v2(lam_v, mu_v, sigma_h, beta_h):
+    return (1/mu_v + ((sigma_h/(mu_v*beta_h))**2*mu_v**2+1)/(2*mu_v)*lam_v/(mu_v-lam_v))*lam_v
 
 
 def gen_lam(x, r):
@@ -700,13 +897,17 @@ def upper_bound(alpha, rscs, link_bans, psi, lam_v, phi_v, theta_v, beta_d, beta
         clb = com_upper_bound_2
     elif mode==2:
         clb = com_upper_bound_3
+    elif mode==3:
+        clb = com_upper_bound_4
     return clb(psi, mu, lam_v, node) + trans_upper_bound_2(alpha, phi_v, theta_v, beta_d, link_bans, lam)
+
 
 # d代表任务量，也就是建模当中的lambda
 def com_upper_bound_1(psi, mu, lam_v, node):
     """ 只考虑最简单的情况 """
     omega = sum(mu)/lam_v
     # return len(mu) * h(omega, psi) 
+    # print("leaf_num of %s is %d" % (node['name'] ,node['leaf_num']))
     return node['leaf_num'] * h(omega, psi)
 
 def com_upper_bound_2(psi, mu, lam_v, node):
@@ -720,6 +921,14 @@ def com_upper_bound_3(psi, mu, lam_v, node):
     for i in range(len(mu)):
         H_list.append(H_r(mu, i, lam_v, psi))
     return min(H_list)
+
+def com_upper_bound_4(psi, mu, lam_v, node):
+    avg_mu = sum(mu)/len(mu)
+    omega = sum(mu)/lam_v
+    num = 0
+    for i in range(len(mu)):
+        num = num + np.sqrt(mu[i]/avg_mu)
+    return num * h(omega, psi)
 
 def com_lower_bound_1(psi, mu, lam_v):
     omega = sum(mu)/lam_v
@@ -749,28 +958,17 @@ def trans_upper_bound_1(alpha, phi_v, theta_v, beta_d, link_bans, lam):
     return 2*data_amount/ban_amount
 
 def trans_upper_bound_2(alpha, phi_v, theta_v, beta_d, link_bans, lam):
-    # print("In trans_upper_bound_2:")
     data_amount = 0
     for i in range(len(alpha)):
         data_amount =  data_amount + max(alpha[i]-lam[i], 0)
-    # data_amount = max(data_amount*beta_d, 0)
-    # data_amount = 0
-    data_amount = max(0, data_amount*beta_d)
+    data_amount = data_amount*beta_d
     ban_amount = sum(link_bans) - phi_v
-    # print("alpha:",alpha)
-    # print("lambda:",lam)
-    # print("phi_v:", phi_v)
-    # print("theta_v", theta_v)
-    # print("sum(link_bans)", sum(link_bans))
-    # print("beta_d:", beta_d)
-    # print("data_amount:", data_amount)
-    # print("ban_amount:", ban_amount)
-    # print("time evaluation:",2*data_amount/ban_amount)
-    # print('')
     if ban_amount > 0:
         return 2*data_amount/ban_amount
     else:
         return 0
+        print(sum(link_bans))
+        raise RuntimeError("ban_amount is %d, should be a positive, phi_v is %d." % (ban_amount, phi_v))
 
 def cal_psi(simga_h, beta_h):
     return (simga_h**2 + beta_h**2)/(2*beta_h**2)
@@ -782,10 +980,34 @@ def transform_result(tree):
 def print_result(x, r):
     print("")
 
-def write_to_file(tree, file_name):
-    with open(file_name, 'w') as f:
-        json.dump(tree, f, sort_keys=True, indent=4, separators=(',', ': '))
-        f.close()
+
+# test functions
+def test_hierarchy(tng, max_iteration=40, repeat=5, need_timing=False):
+    results = []
+    # np.random.seed(seed)
+    # np.set_printoptions(formatter={'float':'{:.3f}'.format})
+
+    time_consumption = []
+
+    tree = test_constructor(tng, do_print=False)
+    success_count = 0
+    start_time = time.time()
+    while success_count < repeat:
+        tree = test_constructor(tng, do_print=False)
+        success = solve_problems(tree, max_repeat=max_iteration, max_success=3 )
+        if success == True:
+            end_time = time.time()
+
+            time_consumption.append(end_time - start_time)
+            start_time = end_time
+
+            results.append(cal_total_time_from_tree(tree))
+            success_count =  success_count + 1
+    print(results)
+    if need_timing == False:
+        return results
+    else:
+        return results, time_consumption
 
 def test_traverse_tree(tree):
     node = traverse_tree(tree, "tng-0-0-1-1")
@@ -793,10 +1015,13 @@ def test_traverse_tree(tree):
 
 def test_solver(node):
     solve_problems(node)
-    write_to_file(tree, 'puppy/results/tng-1-result.json')
+    store_tree(tree, 'puppy/results/hierarchy/tng-1-result.json')
     # print(json.dumps(node,sort_keys=True, indent=4, separators=(',', ': ')))
+    print(cal_total_time_from_tree(tree))
+    print(cal_total_com_time(tree))
+
 def test_gen_group_obj():
-    with open('puppy/results/tng-1-result.json', 'r') as f:
+    with open('puppy/results/hierarchy/tng-1-result.json', 'r') as f:
         tree = json.load(f)
     node = traverse_tree(tree, "tng-0-0-0-1")
     x = [1.406, 2.359, 0.004, 0.003, 1.996, -0.000, 1.997, -0.000, 2908.063,
@@ -805,9 +1030,10 @@ def test_gen_group_obj():
     print("obj(x) is: ",obj(x))
 
 def test_solver_on_dummy():
-    with open('puppy/results/tng-1-result.json', 'r') as f:
+    np.random.seed()
+    with open('puppy/results/hierarchy/tng-1-result.json', 'r') as f:
         tree = json.load(f)
-    node = traverse_tree(tree, "tng-0-0-0-1")
+    node = traverse_tree(tree, "tng-0-0")
     # obj = gen_obj_for_nongroup(node)
     cons = gen_cons(node, BETA_D[0])
     children = node['children']
@@ -825,21 +1051,22 @@ def test_solver_on_dummy():
         print('group')
     iteration = 0
     while iteration < 30:
-        # print("iteration ",iteration)
+        print("iteration ",iteration)
        
         x0 = gen_feasible_solution(cons, node).x
+        # x0 = np.random.rand()
         res = minimize(obj, x0, method='SLSQP', constraints=cons)
-            
+        
         success = res.success
         iteration = iteration + 1
         if res.fun < min_fun and res.success == True:
+            print(res.fun)
             min_fun = res.fun
             min_res = res
     print("In %s , type is %s:" % (node['name'],node['type']))
     print(min_res)
     x = min_res.x
     print(obj(x))
-    check_constraints(cons, x)
     tree['solution'] = result_to_dict(res.x, len(children))
     children = node['children']
     r = len(children)
@@ -859,7 +1086,19 @@ def test_solver_on_dummy():
     omega_0 = sum(rscs)/sum(lam_v)
     print("omega_0:",omega_0)
     print("m*h(omega_0)", len(children)*h(omega_0, psi))
+    check_constraints(cons, x)
 
+def test_wolf():
+    mu = [8, 4, 1, 5, 2, 2, 2, 4]
+    lam = [6.355, 2.000, 0.061, 2.634, 0.793, 0.961, 0.825, 2.371]
+    time = 0
+    for m in range(len(mu)):
+        time = time + f_v(lam_v=lam[m], mu_v=mu[m], sigma_h=SIGMA_H[0], beta_h=BETA_H[0])
+    print(time)
+    time = 0
+    for m in range(len(mu)):
+        time = time +f_v2(lam_v=lam[m], mu_v=mu[m], sigma_h=SIGMA_H[0], beta_h=BETA_H[0])
+    print(time)
 
 
 def test_gen_obj(node):
@@ -913,7 +1152,7 @@ def test_constructor(tng, do_print=False):
     if do_print:
         print("After problem construction:")
         print(json.dumps(tree,sort_keys=True, indent=4, separators=(',', ': ')))
-        with open('puppy/results/tng-1.json', 'w') as f:
+        with open('puppy/results/hierarchy/tng-1.json', 'w') as f:
             json.dump(tree, f, sort_keys=True, indent=4, separators=(',', ': '))
         f.close()
 
@@ -922,8 +1161,9 @@ def test_constructor(tng, do_print=False):
     return tree
 
 if __name__=="__main__":
+    # 测试用例需要的tng配置是，4个域，每个域4台边缘服务器。
     tng = createATreeGraph()
-    # tng.print_info()
+    tng.print_info()
     np.random.seed()
     np.set_printoptions(formatter={'float':'{:.3f}'.format})
 
@@ -934,6 +1174,9 @@ if __name__=="__main__":
     # test_gen_group_obj()
     # test_traverse_tree(tree)
     test_solver(tree)
+    # test_wolf()
+    # tree = load_tree('puppy/results/hierarchy/tng-1-result.json')
+    print(cal_total_time_from_tree(tree))
     
     # test_gen_obj(tree)
     # test_gen_feasible(tree)
