@@ -2,6 +2,7 @@
 import sys
 from . import net_link
 from . import net_ap
+from . import parameters
 
 class NetPath:
     def __init__(self):
@@ -45,6 +46,13 @@ class NetPath:
     
     def getLinkList(self):
         return list(self._linkList)
+    
+    def getPathBan(self):
+        min_ban = parameters.NUM_INT_INFINITY
+        for link in self._linkList:
+            if link.getBandwidth() < min_ban:
+                min_ban = link.getBandwidth()
+        return  min_ban
         
       
     def addLink(self, link):

@@ -17,6 +17,8 @@ from .labrador import test_hierarchy
 from .multi_task import test_multi
 # import matplotlib.pyplot as plt
 from matplotlib.patches import Ellipse, Polygon
+# from matplotlib.font_manager import FontProperties
+import pylab as mpl
 
 
 def create_model_manager(seed=0):
@@ -70,7 +72,7 @@ def create_model_manager(seed=0):
     model_manager = ModelManager()
     model_manager.add_task_type(type_name=CODE_TASK_TYPE_VA, data_size_mean=1, data_size_variance=1, com_size_mean=1, com_size_variance=1)
     model_manager.add_task_type(type_name=CODE_TASK_TYPE_VR, data_size_mean=1, data_size_variance=1, com_size_mean=1, com_size_variance=1)
-    model_manager.add_task_type(type_name=CODE_TASK_TYPE_IoT, data_size_mean=1, data_size_variance=1, com_size_mean=1, com_size_variance=1)
+    model_manager.add_task_type(type_name=CODE_TASK_TYPE_IoT, data_size_mean=1, data_size_variance=1, com_size_mean=1, com_size_variance=1) 
 
     task_gen_info_dict = [{'task_type_name':CODE_TASK_TYPE_VA, 'mean':2, 'variance':5},\
         {'task_type_name':CODE_TASK_TYPE_VR, 'mean':2, 'variance':8},\
@@ -391,7 +393,7 @@ def test_hierarchy_method_time_consumption(seed, repeat=5, gen_feasible='penalty
     #     print("-------------repeat %d, %s, time is %d------------------" % (v, tng['name'], end_time-start_time))
 
 def test_numerical_method_performance(seed, repeat, gen_feasible='linear', need_timing=False):
-    np.random.seed(seed)
+    
     model_manager = create_model_manager()
 
     model_num = len(model_manager.get_tree_net_graphs())
@@ -404,6 +406,7 @@ def test_numerical_method_performance(seed, repeat, gen_feasible='linear', need_
 
     tc_slsqp = np.zeros((model_num, repeat))
     tc_pvi = np.zeros((model_num, repeat))
+    np.random.seed(seed)
 
     try:
         tc_s = np.loadtxt( tc_file_prefix + 'normal.txt')
@@ -424,8 +427,9 @@ def test_numerical_method_performance(seed, repeat, gen_feasible='linear', need_
             print("Already finished.")
             index = index + 1
             continue
-        time_consumption_dict = compare_numerical_method_performance(tng['tng'],max_iteration=200, repeat=repeat, seed=seed, file_prefix=result_folder+tng['name']+'-'+'seed_'+str(seed)+'-', need_timing=need_timing)
+        time_consumption_dict = compare_numerical_method_performance(tng['tng'],max_iteration=200, repeat=repeat,gen_feasible=gen_feasible, seed=seed, file_prefix=result_folder+tng['name']+'-'+'seed_'+str(seed)+'-', need_timing=need_timing)
         # break
+        print(time_consumption_dict)
         if need_timing == True:
             tc_slsqp[index,:] = np.array(time_consumption_dict['slsqp'])
             tc_pvi[index,:] = np.array(time_consumption_dict['pvi'])
@@ -524,26 +528,27 @@ def draw_comparing_time_consumption(seed, model_num, repeat, gen_feasible):
     # y2 = np.loadtxt(result_folder+'linear-partial.txt')
     y1 = np.loadtxt(result_folder+'%d_models-%s-seed_%d-normal.txt' % (model_num, gen_feasible, seed))
     y2 = np.loadtxt(result_folder+'%d_models-%s-seed_%d-partial.txt' % (model_num, gen_feasible, seed))
-    # y3 = np.loadtxt(result_folder+'%d_models-%s-seed_%d-hierarchy.txt' % (model_num, gen_feasible, seed))
+    y3 = np.loadtxt(result_folder+'%d_models-%s-seed_%d-hierarchy.txt' % (model_num, gen_feasible, seed))
 
     para_normal = linear_regression(seed, model_num, 'normal')
     para_partial = linear_regression(seed, model_num, 'partial')
+    para_hierarchy = linear_regression_v2(seed, model_num, 'hierarchy')
 
     model_num = y1.shape[0]
 
     y1 = np.array(y1)*1000
     y2 = np.array(y2)*1000
-    # y3 = np.array(y3)*1000
+    y3 = np.array(y3[0:model_num,:])*1000
 
     x = np.ones(y1.shape)
     y_normal = []
     y_partial = []
-    # y_hierarchy = []
+    y_hierarchy = []
     x_l = []
     for i in range(model_num):
         y_normal.append(np.average(y1[i,:]))
         y_partial.append(np.average(y2[i,:]))
-        # y_hierarchy.append(np.average(y3[i,:]))
+        y_hierarchy.append(np.average(y3[i,:]))
         x_l.append(i+2)
 
     for i in range(model_num):
@@ -551,18 +556,21 @@ def draw_comparing_time_consumption(seed, model_num, repeat, gen_feasible):
     
     y1 = np.reshape(y1, (model_num*repeat,1))
     y2 = np.reshape(y2, (model_num*repeat,1))
-    # y3 = np.reshape(y3, (model_num*repeat,1))
+    y3 = np.reshape(y3, (model_num*repeat,1))
     
     x = np.reshape(x, (model_num*repeat,1))
     # print(x)
     # print(y1)
-    plt.title("Time consumption of numerical methods")
-    plt.xlabel('Server amount')
-    plt.ylabel('Time (ms)')
+    plt.title("多种算法的耗时比较", fontsize=15)
+    plt.xlabel('服务器数目', fontsize=15)
+    plt.ylabel('时间 (ms)', fontsize=15)
     
     plt.scatter(x, y1, alpha=0.6, color='blue', marker='x')
     plt.scatter(x, y2, alpha=0.3, color='green', marker='s')
-    # plt.scatter(x, y3, alpha=0.6, color='red', marker='+')
+    plt.scatter(x, y3, alpha=0.6, color='red', marker='+')
+    plt.xticks(fontsize=10)
+    plt.yticks(fontsize=10)
+
 
     # plt.plot(x_l, y_normal, color='blue', linestyle='--', label='slsqp', marker='x')
     # plt.plot(x_l, y_partial, color='green',linestyle=':', label='pvi', marker='s')
@@ -572,13 +580,19 @@ def draw_comparing_time_consumption(seed, model_num, repeat, gen_feasible):
 
     y_normal = np.exp(para_normal[0]*x_l + para_normal[1])
     y_partial = np.exp(para_partial[0]*x_l + para_partial[1])
+    y_hierarchy = para_hierarchy[0]*x_l + para_hierarchy[1]
+    print(y_hierarchy)
     plt.plot(x_l, y_normal, color='blue', linestyle='--', label='slsqp', marker='x')
     plt.plot(x_l, y_partial, color='green',linestyle=':', label='pvi', marker='s')
-    # plt.plot(x_l, y_hierarchy, color='red', linestyle='dashdot', label='hier', marker='+')
+    plt.plot(x_l, y_hierarchy, color='red', linestyle='dashdot', label='hier', marker='+')
 
     plt.legend(loc=2)
     plt.yscale('log')
     plt.show()
+    # plt.figure()
+    # plt.scatter(x, y3, alpha=0.6, color='red', marker='+')
+    # plt.plot(x_l, y_hierarchy, color='red', linestyle='dashdot', label='hier', marker='+')
+    # plt.show()
 
 def draw_comparing_time_consumption_comb_version():
     model_num = 11
@@ -847,36 +861,87 @@ def draw_comparing_performance_histogram(model_num, seed, repeat, subgraph=None)
     x = np.reshape(x, (model_num*repeat, 1))
 
     fig = plt.figure(1)
+    ax1 = fig.add_subplot(211)
+    labels = [None, None, None, None]
     for i in range(5):
-        ax1 = fig.add_subplot(151+i)
+        
         index = 2*i+2
         y = [y_n[index], y_p[index], y_s[index], y_h[index]]
-        # y_err = [std_n[index], std_p[index], std_s[index], std_h[index]]
-        ax1.bar(range(1, 2),y[0:1] , color='#FF9999' ,alpha=0.8,linewidth=1, edgecolor='black', hatch="X")#, yerr=y_err)
-        ax1.bar(range(2, 3),y[1:2] , color='#99CCCC' ,alpha=0.8,linewidth=1, edgecolor='black', hatch="*")#, yerr=y_err)
-        ax1.bar(range(3, 4),y[2:3] , color='#CCCCFF' ,alpha=0.8,linewidth=1, edgecolor='black', hatch="//")#, yerr=y_err)
-        ax1.bar(range(4, 5),y[3:4] , color='#CCCC99' ,alpha=0.8,linewidth=1, edgecolor='black', hatch="o")#, yerr=y_err)
+        start = i*4
+        y_err = [std_n[index], std_p[index], std_s[index], std_h[index]]
+        if i == 4:
+            labels = ['slsqp', 'pvi', 'sep', 'hier']
+        ax1.bar(range(1 + start, 2 + start),y[0:1] , color='#FF9999' ,alpha=1,linewidth=1, edgecolor='black', hatch="X", label=labels[0])#, yerr=y_err)
+        ax1.bar(range(2 + start, 3 + start),y[1:2] , color='#99CCCC' ,alpha=1,linewidth=1, edgecolor='black', hatch="*", label=labels[1])#, yerr=y_err)
+        ax1.bar(range(3 + start, 4 + start),y[2:3] , color='#CCCCFF' ,alpha=1,linewidth=1, edgecolor='black', hatch="//", label=labels[2])#, yerr=y_err)
+        # ax1.bar(range(4 + start, 5 + start),y[3:4] , color='#CCCC99' ,alpha=1,linewidth=1, edgecolor='black', hatch="o", label=labels[3])#, yerr=y_err)
         # ax1.bar(range(1, 4), y_1[3:6], bottom=y_1[0:3],alpha=0.5, color='#99CCCC', edgecolor='black', hatch='//')
-        ax1.set_xticks([1, 2, 3, 4])
-        ax1.set_ylim((0,6))
-        ax1.set_xticklabels(['slsqp','pvi','sep', 'hier'])
+    # ax1.set_xticks([2.5, 7.5, 12.5, 17.5, 22.5])
+    ax1.set_xticks([2.5, 6.5, 10.5, 14.5, 18.5])
+    
+    plt.legend(loc=2)
+    ax1.set_ylim((0,6))
+    ax1.set_xticklabels(['4服务器','6服务器','8服务器', '10服务器','12服务器'], fontweight='bold')
+    plt.title('解的均值比较', fontweight='bold')
     # plt.show()
 
-    fig = plt.figure(2)
+    # fig = plt.figure(2)
+    labels = [None, None, None, None]
+    ax1 = fig.add_subplot(212)
     for i in range(5):
-        print(i)
-        ax1 = fig.add_subplot(151+i)
+        # print(i)
+        start = i*4
         index = 2*i+2
         y = [y_m_n[index], y_m_p[index], y_m_s[index], y_m_h[index]]
-        ax1.bar(range(1, 2),y[0:1] , color='#FF9999' ,alpha=0.8,linewidth=1, edgecolor='black', hatch="X")#, yerr=y_err)
-        ax1.bar(range(2, 3),y[1:2] , color='#99CCCC' ,alpha=0.8,linewidth=1, edgecolor='black', hatch="//")#, yerr=y_err)
-        ax1.bar(range(3, 4),y[2:3] , color='#CCCCFF' ,alpha=0.8,linewidth=1, edgecolor='black', hatch="*")#, yerr=y_err)
-        ax1.bar(range(4, 5),y[3:4] , color='#CCCC99' ,alpha=0.8,linewidth=1, edgecolor='black', hatch="o")#, yerr=y_err)
+        if i == 4:
+            labels = ['slsqp', 'pvi', 'sep', 'hier']
+        ax1.bar(range(1 + start, 2 + start),y[0:1] , color='#FF9999' ,alpha=1,linewidth=1, edgecolor='black', hatch="X", label=labels[0])#, yerr=y_err)
+        ax1.bar(range(2 + start, 3 + start),y[1:2] , color='#99CCCC' ,alpha=1,linewidth=1, edgecolor='black', hatch="*", label=labels[1])#, yerr=y_err)
+        ax1.bar(range(3 + start, 4 + start),y[2:3] , color='#CCCCFF' ,alpha=1,linewidth=1, edgecolor='black', hatch="//", label=labels[2])#, yerr=y_err)
+        # ax1.bar(range(4 + start, 5 + start),y[3:4] , color='#CCCC99' ,alpha=1,linewidth=1, edgecolor='black', hatch="o", label=labels[3])#, yerr=y_err)
         # ax1.bar(range(1, 4), y_1[3:6], bottom=y_1[0:3],alpha=0.5, color='#99CCCC', edgecolor='black', hatch='//')
-        ax1.set_xticks([1, 2, 3, 4])
-        ax1.set_ylim((0,6))
-        ax1.set_xticklabels(['slsqp','pvi','sep', 'hier'])
+    # ax1.set_xticks([2.5, 7.5, 12.5, 17.5, 22.5])
+    ax1.set_xticks([2.5, 6.5, 10.5, 14.5, 18.5])
+    ax1.set_ylim((0,6))
+    ax1.set_xticklabels(['4服务器','6服务器','8服务器', '10服务器','12服务器'], fontweight='bold')
+    plt.title('解的最小值比较', fontweight='bold')
+    plt.legend(loc=2)
     plt.show()
+    pass
+
+def merge_exp_data(seed_list, model_num, repeat, new_seed):
+    result_folder = './puppy/results/performance/'
+
+    length = len(seed_list)
+    f_lower = np.zeros(repeat*length)
+    f_normal = np.zeros(repeat*length)
+    f_partial = np.zeros(repeat*length)
+    f_seperate = np.zeros(repeat*length)
+    f_hierarchy = np.zeros(repeat*length)
+    for u in range(model_num):
+        for i in range(length):
+            mid_name = "_servers-seed_%d-" % seed_list[i]
+            lower = mid_name+'lower_result.txt'
+            normal = mid_name+'normal_result.txt'
+            partial = mid_name+'partial_result.txt'
+            seperate = mid_name+'seperate_result.txt'
+            hierarchy = mid_name+'hierarchy_result.txt'
+            f_lower[i*repeat:(i+1)*repeat] = np.array(np.loadtxt(result_folder + str(u+2) + lower))
+            f_normal[i*repeat:(i+1)*repeat] = np.array(np.loadtxt(result_folder + str(u+2) + normal))
+            f_partial[i*repeat:(i+1)*repeat] = np.array(np.loadtxt(result_folder + str(u+2) + partial))
+            f_seperate[i*repeat:(i+1)*repeat] = np.array(np.loadtxt(result_folder + str(u+2) + seperate))
+            f_hierarchy[i*repeat:(i+1)*repeat] = np.array(np.loadtxt(result_folder + str(u+2) + hierarchy))
+        mid_name = "_servers-seed_%d-" % new_seed
+        lower = mid_name+'lower_result.txt'
+        normal = mid_name+'normal_result.txt'
+        partial = mid_name+'partial_result.txt'
+        seperate = mid_name+'seperate_result.txt'
+        hierarchy = mid_name+'hierarchy_result.txt'
+        np.savetxt(result_folder + str(u+2) + lower, f_lower, fmt = '%f')
+        np.savetxt(result_folder + str(u+2) + normal, f_normal, fmt = '%f')
+        np.savetxt(result_folder + str(u+2) + partial, f_partial, fmt = '%f')
+        np.savetxt(result_folder + str(u+2) + hierarchy, f_hierarchy, fmt = '%f')
+        np.savetxt(result_folder + str(u+2) + seperate, f_seperate, fmt = '%f')
     pass
 
 def draw_time_vs_performance(model_num, repeat, seed, file_prefix):
@@ -939,35 +1004,89 @@ def draw_data_com_ratio_influence():
     print(y_3)
     print(y_4)
 
+    y = [y_1, y_2, y_3, y_4]
     fig = plt.figure()
-    ax1 = fig.add_subplot(141)
-    ax1.bar(range(1, 4), y_1[0:3], color='#FF9999' ,alpha=0.8,linewidth=1, edgecolor='black', hatch="X")
-    ax1.bar(range(1, 4), y_1[3:6], bottom=y_1[0:3],alpha=0.5, color='#99CCCC', edgecolor='black', hatch='//')
-    ax1.set_xticks([1, 2, 3])
+    ax1 = fig.add_subplot(211)
+    ticks = []
+    tick_labels = ['2.00','2.00','2.00', '2.25','2.00','1.75', '2.50','2.00','1.50', '2.75','2.00','1.25']
+    labels = [None,None,None]
+    for i in range(4):
+        start = i*4 + 1
+        if i == 3:
+            labels = ['任务1','任务2','任务3']
+        ax1.bar(range(start, start+1), y[i][0], color='#0099CC' ,alpha=1,linewidth=1, edgecolor='black', hatch="X", label=labels[0])
+        ax1.bar(range(start+1, start+2), y[i][1], color='#feee7d' ,alpha=1,linewidth=1, edgecolor='black', hatch="//", label=labels[1])
+        ax1.bar(range(start+2, start+3), y[i][2], color='#fab1ce' ,alpha=1,linewidth=1, edgecolor='black', hatch="o", label=labels[2])
+        # ax1.bar(range(start, start+3), y[i][3:6], bottom=y[i][0:3],alpha=0.5, color='#99CCCC', edgecolor='black', hatch='//', label='域2')
+        
+        ticks = ticks + [start,start+1, start+2]
+    ax1.set_xticks(ticks)
+    ax1.set_xticklabels(tick_labels)
+    plt.legend(loc=2)
     ax1.set_ylim((0,6.3))
-    ax1.set_xticklabels(['2.00','2.00','2.00'])
+    plt.ylabel("域1的负载", fontweight='bold')
+    # plt.xlabel("任务数据量同计算量的比例")
 
-    ax2 = fig.add_subplot(142)
-    ax2.bar(range(1, 4), y_2[0:3], color='#FF9999' ,alpha=0.8,linewidth=1, edgecolor='black', hatch="X")
-    ax2.bar(range(1, 4), y_2[3:6], bottom=y_2[0:3],alpha=0.5, color='#99CCCC', edgecolor='black', hatch='//')
-    ax2.set_xticks([1, 2, 3])
+
+    ax2 = fig.add_subplot(212)
+    labels = [None,None,None]
+    for i in range(4):
+        start = i*4 + 1
+        if i == 3:
+            labels = ['任务1','任务2','任务3']
+        ax2.bar(range(start, start+1), y[i][3], color='#0099CC' ,alpha=1,linewidth=1, edgecolor='black', hatch="X", label=labels[0])
+        ax2.bar(range(start+1, start+2), y[i][4], color='#feee7d' ,alpha=1,linewidth=1, edgecolor='black', hatch="//", label=labels[1])
+        ax2.bar(range(start+2, start+3), y[i][5], color='#fab1ce' ,alpha=1,linewidth=1, edgecolor='black', hatch="o", label=labels[2])
+    ax2.set_xticks(ticks)
+    ax2.set_xticklabels(tick_labels)
+    plt.legend(loc=2)
     ax2.set_ylim((0,6.3))
-    ax2.set_xticklabels(['2.25','2.00','1.75'])
+    plt.ylabel("域2的负载", fontweight='bold')
+    plt.xlabel("任务数据量同计算量的比例", fontweight='bold')
+    # ax3 = fig.add_subplot(143)
+    # ax3.bar(range(1, 4), y_3[0:3], color='#FF9999' ,alpha=0.8,linewidth=1, edgecolor='black', hatch="X")
+    # ax3.bar(range(1, 4), y_3[3:6], bottom=y_3[0:3],alpha=0.5, color='#99CCCC', edgecolor='black', hatch='//')
+    # ax3.set_xticks([1, 2, 3])
+    # ax3.set_ylim((0,6.3))
+    # ax3.set_xticklabels(['2.50','2.00','1.50'])
 
-    ax3 = fig.add_subplot(143)
-    ax3.bar(range(1, 4), y_3[0:3], color='#FF9999' ,alpha=0.8,linewidth=1, edgecolor='black', hatch="X")
-    ax3.bar(range(1, 4), y_3[3:6], bottom=y_3[0:3],alpha=0.5, color='#99CCCC', edgecolor='black', hatch='//')
-    ax3.set_xticks([1, 2, 3])
-    ax3.set_ylim((0,6.3))
-    ax3.set_xticklabels(['2.50','2.00','1.50'])
-
-    ax4 = fig.add_subplot(144)
-    ax4.bar(range(1, 4), y_4[0:3], color='#FF9999' ,alpha=0.8,linewidth=1, edgecolor='black', hatch="X")
-    ax4.bar(range(1, 4), y_4[3:6], bottom=y_4[0:3],alpha=0.5, color='#99CCCC', edgecolor='black', hatch='//')
-    ax4.set_xticks([1, 2, 3])
-    ax4.set_ylim((0,6.3))
-    ax4.set_xticklabels(['2.75','2.00','1.25'])
+    # ax4 = fig.add_subplot(144)
+    # ax4.bar(range(1, 4), y_4[0:3], color='#FF9999' ,alpha=0.8,linewidth=1, edgecolor='black', hatch="X")
+    # ax4.bar(range(1, 4), y_4[3:6], bottom=y_4[0:3],alpha=0.5, color='#99CCCC', edgecolor='black', hatch='//')
+    # ax4.set_xticks([1, 2, 3])
+    # ax4.set_ylim((0,6.3))
+    # ax4.set_xticklabels(['2.75','2.00','1.25'])
     plt.show()
+
+    # fig = plt.figure()
+    # ax1 = fig.add_subplot(141)
+    # ax1.bar(range(1, 4), y_1[0:3], color='#FF9999' ,alpha=0.8,linewidth=1, edgecolor='black', hatch="X")
+    # ax1.bar(range(1, 4), y_1[3:6], bottom=y_1[0:3],alpha=0.5, color='#99CCCC', edgecolor='black', hatch='//')
+    # ax1.set_xticks([1, 2, 3])
+    # ax1.set_ylim((0,6.3))
+    # ax1.set_xticklabels(['2.00','2.00','2.00'])
+
+    # ax2 = fig.add_subplot(142)
+    # ax2.bar(range(1, 4), y_2[0:3], color='#FF9999' ,alpha=0.8,linewidth=1, edgecolor='black', hatch="X")
+    # ax2.bar(range(1, 4), y_2[3:6], bottom=y_2[0:3],alpha=0.5, color='#99CCCC', edgecolor='black', hatch='//')
+    # ax2.set_xticks([1, 2, 3])
+    # ax2.set_ylim((0,6.3))
+    # ax2.set_xticklabels(['2.25','2.00','1.75'])
+
+    # ax3 = fig.add_subplot(143)
+    # ax3.bar(range(1, 4), y_3[0:3], color='#FF9999' ,alpha=0.8,linewidth=1, edgecolor='black', hatch="X")
+    # ax3.bar(range(1, 4), y_3[3:6], bottom=y_3[0:3],alpha=0.5, color='#99CCCC', edgecolor='black', hatch='//')
+    # ax3.set_xticks([1, 2, 3])
+    # ax3.set_ylim((0,6.3))
+    # ax3.set_xticklabels(['2.50','2.00','1.50'])
+
+    # ax4 = fig.add_subplot(144)
+    # ax4.bar(range(1, 4), y_4[0:3], color='#FF9999' ,alpha=0.8,linewidth=1, edgecolor='black', hatch="X")
+    # ax4.bar(range(1, 4), y_4[3:6], bottom=y_4[0:3],alpha=0.5, color='#99CCCC', edgecolor='black', hatch='//')
+    # ax4.set_xticks([1, 2, 3])
+    # ax4.set_ylim((0,6.3))
+    # ax4.set_xticklabels(['2.75','2.00','1.25'])
+    # plt.show()
     pass
 
 def draw_convergence(file_prefix):
@@ -997,11 +1116,11 @@ def draw_convergence(file_prefix):
         plt.plot(x, np.log(np.abs(obj_for_normal)+1)[0:length], color="blue",linewidth=1.5,linestyle='-.',label='slsqp')#, marker='x', markersize=4)
         plt.plot(x, np.log(np.abs(obj_for_seperate)+1)[0:length],alpha=1, color="green",linewidth=1.5,linestyle='dashdot',label='sep',)# marker='o', markersize=4)
         plt.plot(x, np.zeros(length), color='tab:pink', linestyle='dotted', linewidth=1)
-        plt.title(str(i*2 + 4) + ' servers')
+        plt.title(str(i*2 + 4) + ' 服务器')
         if i == 2 or i == 3:
-            plt.xlabel("Iteration") 
+            plt.xlabel("迭代次数") 
         if i == 0 or i == 2:
-            plt.ylabel("Objective") 
+            plt.ylabel("目标函数值") 
 
         plt.legend(loc=1)
         plt.xlim(0,length)
@@ -1034,10 +1153,33 @@ def linear_regression(seed, model_num, solver_name):
         # print(avg)
     return res.x
 
+def linear_regression_v2(seed, model_num, solver_name):
+    result_folder = './puppy/results/performance/'
+    config_folder = './puppy.config/'
+    time_consumption_folder = './puppy/results/time_consumption/'
+    tc_file = time_consumption_folder + "%d_models-%s-seed_%d-%s.txt" % (model_num, 'linear', seed, solver_name)
+
+
+    y = np.loadtxt(tc_file)#*1000 # y必须是二维的
+    x = []
+    x = range(2, y.shape[0]+2)
+    def obj(para):
+        err = 0
+        for i in range(y.shape[0]):
+            for j in range(y.shape[1]):
+                err = err + np.abs(para[0]*x[i] + para[1] - y[i,j] )
+        return err
+    res = minimize(obj, [1,1])
+    print(res)
+        # print(avg)
+    return res.x*1000
+
 if __name__ == "__main__":
     np.set_printoptions(formatter={'float':'{:.3f}'.format})
     seed = 40
-
+    
+    mpl.rcParams['font.sans-serif'] = ['FangSong']  # 指定默认字体
+    mpl.rcParams['axes.unicode_minus'] = False 
 
     # linear_regression(30, model_num=19, solver_name='partial')
 
@@ -1063,10 +1205,13 @@ if __name__ == "__main__":
     # draw_comparing_performance(model_num=9, seed=10, repeat=10)
 
     # 修改了下拓扑的结构
-    # test_numerical_method_performance(seed=seed, repeat=5, need_timing=True)
+    # test_numerical_method_performance(seed=seed, repeat=5, need_timing=True, gen_feasible='penalty')
     # test_hierarchy_method_performance(seed=seed, repeat=5, need_timing=True)
     # draw_comparing_performance(model_num=10, seed=15, repeat=5)
-    # draw_comparing_performance_histogram(model_num=11, seed=15, repeat=5)
+
+
+    # merge_exp_data([15,30,35,40], model_num=11, repeat=5, new_seed=0)
+    draw_comparing_performance_histogram(model_num=11, seed=0, repeat=20)
 
     # file_prefix = str(11)+'_models-'+'linear-'
     # test_hierarchy_method_performance(seed=15, repeat=5)
@@ -1075,10 +1220,9 @@ if __name__ == "__main__":
     # draw_comparing_performance(model_num=11, seed=15, repeat=5)
 
     # test_numerical_method_time_consumption(seed=seed, gen_feasible='linear', file_prefix=str(11)+'_models-'+'linear-')
-    # draw_comparing_time_consumption(model_num=11, repeat=5, file_prefix=str(11)+'_models-'+'linear-seed_%d-'% seed)
     # draw_comparing_time_consumption(model_num=11, repeat=5, file_prefix=str(11)+'_models-'+'linear-')
 
-    draw_comparing_time_consumption(seed=35, model_num=19, repeat=5, gen_feasible='linear')
+    # draw_comparing_time_consumption(seed=seed, model_num=19, repeat=5, gen_feasible='linear')
 
     
     

@@ -149,6 +149,15 @@ class NetGraph:
             if self._APList[i].getID() == ap.getID():
                 return i
         sys.exit("No such AP in this net graph!")
+    
+    def getPathBanMatrix(self):
+        ban_matrix = np.ones((self._serverNum, self._serverNum)) * parameters.NUM_INT_INFINITY
+
+        for i in range(self._serverNum):
+            for j in range(self._serverNum):
+                if i != j:
+                    ban_matrix[i,j] = self._pathMatrix[i][j].getPathBan()
+        return ban_matrix
 
 
 class TreeNetGraph(NetGraph):

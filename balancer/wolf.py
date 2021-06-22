@@ -26,7 +26,7 @@ DISCOUNT = 0.8
 
 
 def gen_objective(args, mode=0, argA=None, argB=None):
-    server_num, sigma_d, beta_d, sigma_h, beta_h, c = args
+    server_num, sigma_d, beta_d, sigma_h, beta_h, c, path_bans = args
     mu = np.zeros(server_num)
     omega = np.zeros(server_num)
 
@@ -49,7 +49,7 @@ def gen_objective(args, mode=0, argA=None, argB=None):
             for i in range(server_num):
                 for j in range(server_num):
                     f = f + x[i*server_num+j]*(1/mu[j] + omega[j]*Lam[j]/(mu[j]-Lam[j]))
-                    if i != j and x[server_num**2+i*server_num+j] > 0:
+                    if i != j and x[server_num**2+i*server_num+j] > 0 and x[i*server_num+j]>0:
                         f = f + x[i*server_num+j]*(beta_d/x[server_num**2+i*server_num+j])
             return f
     elif mode == 1: # 固定卸载决策优化带宽分配 
@@ -62,7 +62,7 @@ def gen_objective(args, mode=0, argA=None, argB=None):
             for i in range(server_num):
                 for j in range(server_num):
                     f = f + argA[i*server_num+j]*(1/mu[j] + omega[j]*Lam[j]/(mu[j]-Lam[j]))
-                    if i != j and x[i*server_num+j] > 0:
+                    if i != j and x[i*server_num+j] > 0 and argA[i*server_num+j] > 0:
                         f = f + argA[i*server_num+j]*(beta_d/x[i*server_num+j])
                         # f = f + argA[i*server_num+j]*beta_d/x[i*server_num+j]
             return f
@@ -76,11 +76,11 @@ def gen_objective(args, mode=0, argA=None, argB=None):
             for i in range(server_num):
                 for j in range(server_num):
                     f = f + x[i*server_num+j]*(1/mu[j] + omega[j]*Lam[j]/(mu[j]-Lam[j]))
-                    if i != j and argB[i*server_num+j] > 0:
+                    if i != j and argB[i*server_num+j] > 0 and argB[i*server_num+j] > 0:
                         f = f + x[i*server_num+j]*(beta_d/argB[i*server_num+j])
                         # f = f + x[i*server_num+j]*(1/mu[j] + omega[j]*Lam[j]/(mu[j]-Lam[j]))
             return f
-    elif mode == 3: # 带宽分配取最小值
+    elif mode == 3: # 带宽取最小值
         def func(x):
             Lam = np.zeros(server_num)
             for i in range(server_num):
@@ -95,7 +95,7 @@ def gen_objective(args, mode=0, argA=None, argB=None):
                 for j in range(server_num):
                     f = f + x[i*server_num+j]*(1/mu[j] + omega[j]*Lam[j]/(mu[j]-Lam[j]))
                     if i != j:
-                        f = f + 1
+                        f = f + 1 # 路径带宽取最小值，此时无论传输多少，传输延迟都是1
             return f
     elif mode == 4: # 只求计算延迟
         def func(x):
@@ -127,6 +127,23 @@ def gen_objective(args, mode=0, argA=None, argB=None):
                 for j in range(server_num):
                     if i != j:
                         f = f + x[i*server_num+j]*(beta_d/x[server_num**2+i*server_num+j])
+            return f
+    elif mode == 6: # 带宽取最大值
+        def func(x):
+            Lam = np.zeros(server_num)
+            for i in range(server_num):
+                for j in range(server_num):
+                    Lam[j] = Lam[j] + x[i*server_num + j]
+            # print("mu\n",mu)
+            # print("mu - Lam:\n",mu - Lam)
+            # print("omega:\n",omega)
+            # print("omega[3]*Lam[3]/(mu[3]-Lam[3])\n",omega[2]*Lam[2]/(mu[2]-Lam[2]))
+            f = 0
+            for i in range(server_num):
+                for j in range(server_num):
+                    f = f + x[i*server_num+j]*(1/mu[j] + omega[j]*Lam[j]/(mu[j]-Lam[j]))
+                    if i != j and x[i*server_num+j]>0 and argB[i*server_num+j] > 0 and argB[i*server_num+j] > 0:
+                        f = f + x[i*server_num+j]*beta_d/path_bans[i,j]
             return f
     return func
 
@@ -194,7 +211,7 @@ def gen_args(ng):
     c = np.zeros(len(s_list))
     for j in range(len(s_list)):
         c[j] = s_list[j].getRscAmount()
-    return (server_num, sigma_d, beta_d, sigma_h, beta_h, c)
+    return (server_num, sigma_d, beta_d, sigma_h, beta_h, c, ng.getPathBanMatrix())
 
 
 # Functions for generating, checking and managing  constraints
@@ -758,18 +775,18 @@ def gen_feasible_solution_exterior(cons, args, cons_mode=0, true_initial=False):
         print("Wrong cons_mode")
         sys.exit(6)
     
-    server_num, sigma_d, beta_d, sigma_h, beta_h, c = args
+    server_num, sigma_d, beta_d, sigma_h, beta_h, c, path_bans = args
     
     if true_initial == True:
-        for i  in range(200):
+        for i  in range(400):
             print("count: ", i)
             x0 = np.random.rand(2*server_num**2)
             res = minimize(penalty_func, x0, method='SLSQP',constraints=cons, tol=0.0001)
             if res.success ==True:
                 break
-        if i==199:
-            print("Iteration for finding initial value exceeds 200 times.")
-            sys.exit(10)
+        if i==399:
+            # print("Iteration for finding initial value exceeds 200 times.")
+            raise ValueError("Iteration for finding initial value exceeds 400 times.")
     else:
         x0 = np.random.rand(2*server_num**2)
         res = minimize(penalty_func, x0, method='SLSQP',constraints=cons, tol=0.0001)
@@ -785,7 +802,7 @@ def gen_feasible_solution_exterior(cons, args, cons_mode=0, true_initial=False):
 def gen_feasible_solution_interior(cons, args):
     print("Generating feasible solution by interior_penalty:")
     in_func = interior_penalty(cons)
-    server_num, sigma_d, beta_d, sigma_h, beta_h, c = args
+    server_num, sigma_d, beta_d, sigma_h, beta_h, c, path_bans = args
     # flag = True
     # num = 1
     # while flag:
@@ -801,7 +818,7 @@ def gen_feasible_solution_interior(cons, args):
     return res
 
 def gen_feasible_solution_linear(cons, args, cons_mode=0, true_initial=False, mode=0):
-    server_num, sigma_d, beta_d, sigma_h, beta_h, c = args
+    server_num, sigma_d, beta_d, sigma_h, beta_h, c, path_bans = args
     if true_initial == True:
         for i  in range(100):
             print("count: ", i)
@@ -824,7 +841,7 @@ def gen_feasible_solution_linear(cons, args, cons_mode=0, true_initial=False, mo
     return res
 
 def gen_feasible_solution_com(cons, args, cons_mode=0, true_initial=False):
-    server_num, sigma_d, beta_d, sigma_h, beta_h, c = args
+    server_num, sigma_d, beta_d, sigma_h, beta_h, c, path_bans = args
     obj = gen_objective(args, mode=4)
     if true_initial == True:
         for i  in range(100):
@@ -845,7 +862,7 @@ def gen_feasible_solution_com(cons, args, cons_mode=0, true_initial=False):
     return res
 
 def gen_feasible_solution_zero(cons, args, cons_mode=0, true_initial=False):
-    server_num, sigma_d, beta_d, sigma_h, beta_h, c = args
+    server_num, sigma_d, beta_d, sigma_h, beta_h, c, path_bans = args
     def obj(x):
         return 0
     if true_initial == True:
@@ -1061,20 +1078,18 @@ def observe_feasible_solution_feature(tng, max_iteration=200, repeat=5):
 
 
 
-def compare_numerical_method_performance(tng, max_iteration=200, repeat=5, seed=1, file_prefix='', need_timing=False):
+def compare_numerical_method_performance(tng, max_iteration=200, repeat=5, seed=1, file_prefix='', need_timing=False, gen_feasible='penalty'):
     np.random.seed(seed)
     # max_iteration = 200
     # repeat = 20
     tc = {}
-    results_for_lower =  test_lower_bound(tng, repeat=repeat, max_iteration=max_iteration)
-    results_for_partial, tc['pvi'] = test_partial_iteration(tng, repeat=repeat, max_iteration=max_iteration, return_result=True, need_timing=need_timing)
-    results_for_normal, tc['slsqp'] = test_normal_iteration(tng, max_iteration=max_iteration, repeat=repeat, return_result=True, need_timing=need_timing)
-    results_for_seperate = test_partial_iteration_with_min_ban(tng, max_iteration=max_iteration, repeat=repeat, return_result=True)
-    
-
+    results_for_lower =  test_lower_bound(tng, repeat=repeat, max_iteration=max_iteration, gen_feasible=gen_feasible)
     np.savetxt('%slower_result.txt' % file_prefix, results_for_lower, fmt = '%f')
+    results_for_partial, tc['pvi'] = test_partial_iteration(tng, repeat=repeat, max_iteration=max_iteration, return_result=True, need_timing=need_timing, gen_feasible=gen_feasible)
     np.savetxt('%spartial_result.txt' % file_prefix, results_for_partial, fmt = '%f')
+    results_for_normal, tc['slsqp'] = test_normal_iteration(tng, max_iteration=max_iteration, repeat=repeat, return_result=True, need_timing=need_timing, gen_feasible=gen_feasible)
     np.savetxt('%snormal_result.txt' % file_prefix, results_for_normal, fmt = '%f')
+    results_for_seperate = test_partial_iteration_with_max_ban(tng, max_iteration=max_iteration, repeat=repeat, return_result=True, gen_feasible=gen_feasible)
     np.savetxt('%sseperate_result.txt' % file_prefix, results_for_seperate, fmt = '%f')
     if need_timing == True:
         return tc
@@ -1116,19 +1131,20 @@ def test_lower_bound(tng, max_iteration=200, repeat=5, gen_feasible='penalty'):
         resA = minimize(gen_objective(args, mode=4), x0, method='SLSQP',constraints=constraints1, callback=callback)#, options={ 'maxiter':300})# , options={"maxiter":1})
         
         if resA.success != True or resA.fun > 1000:
-            print("At A, Bad repeat")
+            print("At A, Bad repeat, objective is %f" % resA.fun)
             continue
 
         # 目标函数取5
         resB = minimize(gen_objective(args, mode=5), x0, method='SLSQP',constraints=constraints1, options={'maxiter':max_iteration}, callback=callback)# options={"maxiter":1})
-        print(resB)
+        # print(resB)
         if (resB.success == False and resB.message != 'Iteration limit exceeded') or resB.fun > 1000:
-            print("At B, Bad repeat")
+            print("At B, Bad repeat, objective is %f" % resB.fun)
             continue
 
         # objective_for_pvi = objective_for_pvi + record_fun
         results[success] = resA.fun + resB.fun
         success = success + 1
+        print("success count %d" % success)
         print('resA:\n', resA)
         print("resB:\n", resB)
 
@@ -1274,7 +1290,8 @@ def test_partial_iteration(tng, max_iteration, repeat=5, gen_feasible='penalty',
                 # print((resA.fun))
                 # print(resA.success)
                 # print(resA.message)
-                if resA.fun <0 or resA.fun>1000 or (resA.success != True and resA.message != "Iteration limit exceeded"):
+                # if resA.fun <0 or resA.fun>1000 or (resA.success != True and resA.message != "Iteration limit exceeded"):
+                if resA.fun <0 or (resA.success != True and resA.message != "Iteration limit exceeded"):
                     flag = 1
                     print("Iteration %d, bad repeat in mode 2, obj %f, %s" % (i,resA.fun, resA.message))
                     # tmpx = np.zeros(len(resA.x))
@@ -1314,7 +1331,7 @@ def test_partial_iteration(tng, max_iteration, repeat=5, gen_feasible='penalty',
                 # old_fun = resB.fun
 
                 
-        if flag == 0:
+        if flag == 0 and resB.fun < 1000:
             objective_for_pvi = objective_for_pvi + record_fun
             results[success] = resB.fun
             success = success + 1
@@ -1412,6 +1429,105 @@ def test_partial_iteration_with_min_ban(tng, max_iteration, repeat=5, gen_feasib
         resB = minimize(gen_objective(args, mode=1, argA=argA), argB, method='SLSQP',constraints=cons, options={'maxiter':300}, callback=callback)# options={"maxiter":1})
         print(resB)
         if (resB.success == False and resB.message != 'Iteration limit exceeded') or resB.fun > resA.fun or resB.fun > 1000:
+            print("At B, Bad repeat")
+            continue
+        argB = resB.x
+
+        # objective_for_pvi = objective_for_pvi + record_fun
+        results[success] = resB.fun
+        success = success + 1
+        print('resA:\n', resA)
+        print("resB:\n", resB)
+        print("Repeation ", success)
+        print("Offloading:")
+        print(np.reshape(argA,(len(s_list), len(s_list))))
+        print("lambda:\n",np.sum(np.reshape(argA,(len(s_list), len(s_list))),axis=0))
+        print("Bandwidth:")
+        print(np.reshape(argB,(len(s_list), len(s_list))))
+        # check_constraints(constraints1, np.concatenate((argA, argB)))
+        f = gen_objective(args, mode=1, argA=argA)
+        for i in range(len(objective_for_slsqp)-A_length):
+                if A_length + i >= len(result_for_slsqp):
+                    objective_for_slsqp[A_length + i] = objective_for_slsqp[A_length + i] + f(resB.x)
+                else:
+                    objective_for_slsqp[A_length + i] = f(result_for_slsqp[A_length + i]) + objective_for_slsqp[A_length + i]
+                
+    objective_for_slsqp = objective_for_slsqp/success
+    # print(objective_for_slsqp)
+    if return_result == True:
+        return results
+    else:
+        return objective_for_slsqp
+
+def test_partial_iteration_with_max_ban(tng, max_iteration, repeat=5, gen_feasible='penalty', return_result=False):
+    # np.random.seed(9)
+
+    constraints1 = []
+    constraints1 = constraints_for_links(tng)
+    constraints1 = constraints_for_offloading(tng) + constraints1
+    constraints1 = constraints_for_path_ban(tng) + constraints1
+    constraints1 = constraints_for_receiver(tng) + constraints1
+    constraints1 = constraints_for_sender(tng) + constraints1
+
+    args = gen_args(tng)
+    if gen_feasible == 'penalty':
+        gen_feasible_func = gen_feasible_solution_exterior
+    elif gen_feasible == 'linear':
+        gen_feasible_func = gen_feasible_solution_linear
+    elif gen_feasible == 'com':
+        gen_feasible_func = gen_feasible_solution_com
+    else:
+        raise ValueError("No generating feasible solution function corresponding to %s " % gen_feasible)
+    normal_iteration = max_iteration
+    f = gen_objective(args)
+
+    results = np.zeros(repeat)
+    
+    
+    objective_for_slsqp = np.zeros(max_iteration)
+    success = 0
+    s_list = tng.getServerList()
+    # If we use partial variable iteration
+    def callback(xk):
+        result_for_slsqp.append(xk)
+    while success < repeat:
+        result_for_slsqp = []
+
+        # 首先生成可行解
+        x0 = gen_feasible_func(constraints1, args, true_initial=True).x
+
+        # 然后以最小带宽分配，优化卸载决策
+        argA = x0[0:len(s_list)**2]
+        argB = x0[len(s_list)**2: 2*len(s_list)**2]
+        cons = []
+        cons = constraints_for_links(tng, mode=3, argB=argB)
+        cons = constraints_for_offloading(tng, mode=3, argB=argB) + cons
+        cons = constraints_for_path_ban(tng, mode=3, argB=argB) + cons
+        cons = constraints_for_receiver(tng, mode=3, argB=argB) + cons
+        cons = constraints_for_sender(tng, mode=3, argB=argB) + cons
+
+        resA = minimize(gen_objective(args, mode=6, argB=argB), argA, method='SLSQP',constraints=cons, callback=callback)#, options={ 'maxiter':300})# , options={"maxiter":1})
+        
+        if resA.success != True:
+            print("At A, Bad repeat")
+            continue
+        # print(resA)
+        A_length = len(result_for_slsqp)
+        f = gen_objective(args, mode=6, argB=argB)
+        for i in range(A_length):
+            objective_for_slsqp[i] = f(result_for_slsqp[i]) + objective_for_slsqp[i]
+        # 接着优化带宽分配
+        argA = resA.x
+             
+        cons = []
+        cons = constraints_for_links(tng, mode=1, argA=argA)
+        cons = constraints_for_offloading(tng, mode=1, argA=argA) + cons
+        cons = constraints_for_path_ban(tng, mode=1, argA=argA) + cons
+        cons = constraints_for_receiver(tng, mode=1, argA=argA) + cons
+        cons = constraints_for_sender(tng, mode=1, argA=argA) + cons
+        resB = minimize(gen_objective(args, mode=1, argA=argA), argB, method='SLSQP',constraints=cons, options={'maxiter':300}, callback=callback)# options={"maxiter":1})
+        # print(resB)
+        if (resB.success == False and resB.message != 'Iteration limit exceeded') or resB.fun > 1000:
             print("At B, Bad repeat")
             continue
         argB = resB.x
@@ -1664,6 +1780,8 @@ def compare_numerical_method_convergence(tng, max_iteration=200, repeat=5, seed=
     obj_for_partial = test_partial_iteration(tng, repeat=repeat, max_iteration=max_iteration)
     obj_for_normal = test_normal_iteration(tng, max_iteration=max_iteration, repeat=repeat)
     obj_for_seperate = test_partial_iteration_with_min_ban(tng, max_iteration=max_iteration, repeat=repeat)
+    # obj_for_seperate = test_partial_iteration_with_max_ban(tng, max_iteration=max_iteration, repeat=repeat)
+
     # obj_for_penalty = test_penalty_optimization(tng, max_iteration=max_iteration,repeat=repeat)
     
     np.savetxt('./puppy/results/convergence/%spartial.txt' % file_prefix, obj_for_partial, fmt = '%f')
@@ -1737,3 +1855,6 @@ if __name__ == "__main__":
     # test_efficiency_of_penalty_funcions(tng)
 
     # gen_problem_for_R_language(tng)
+
+    
+    
